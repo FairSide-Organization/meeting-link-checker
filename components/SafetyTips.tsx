@@ -132,14 +132,13 @@ export function SafetyTips() {
         {safetyExpanded && (
           <ul className="mt-4 space-y-3">
             {[
-              "Always verify meeting links before clicking - use this tool!",
-              "Be extra suspicious of links from friends asking to schedule calls",
-              "Never run terminal commands from meeting apps or troubleshooting guides",
-              "Deny all Zoom Remote Control requests unless absolutely necessary",
-              "Verify unexpected meeting requests through a different channel (call, text, in person)",
+              "Verify unexpected meeting requests through a different channel (call, text, DM on another platform)",
               "Check that the main domain matches the platform (zoom.us, not zoom.something.us)",
-              "Be cautious of screenshare requests - never display sensitive info",
+              "Never run terminal commands from a meeting app or \"troubleshooting\" guide. This is always malware.",
+              "If something feels off mid-call (audio issues, strange UI), leave and rejoin through zoom.us directly",
+              "Scammers may use AI-generated video or real recordings of people you know. A familiar face on screen doesn't mean it's actually them.",
               "Use a hardware wallet for crypto and keep it disconnected when not in use",
+              "Scammers rely on urgency, fear, and FOMO to override your judgment. If you feel rushed, slow down.",
             ].map((tip, index) => (
               <li key={index} className="flex items-start gap-3 text-[#110320]/70 text-sm">
                 <svg className="w-5 h-5 text-[#3BA035] flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

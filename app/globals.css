@@ -1,0 +1,128 @@
+@import "tailwindcss";
+
+/* Alliance No.2 - Primary sans-serif font */
+@font-face {
+  font-family: 'Alliance No.2';
+  src: url('/fonts/AllianceNo.2-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Alliance No.2';
+  src: url('/fonts/AllianceNo.2-Medium.otf') format('opentype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Alliance No.2';
+  src: url('/fonts/AllianceNo.2-SemiBold.otf') format('opentype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Alliance No.2';
+  src: url('/fonts/AllianceNo.2-Bold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* PP Supply Mono - Monospace font for code/URLs */
+@font-face {
+  font-family: 'PP Supply Mono';
+  src: url('/fonts/PPSupplyMono-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'PP Supply Mono';
+  src: url('/fonts/PPSupplyMono-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'PP Supply Mono';
+  src: url('/fonts/PPSupplyMono-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  /* Fairside Brand Colors */
+  --primary-purple: #8750FF;
+  --primary-midnight: #110320;
+  --primary-white: #FFFFFF;
+  --light-grey: #F6F6F6;
+
+  --secondary-green: #00515C;
+  --secondary-red: #CC192E;
+
+  --tertiary-blue: #3C95E5;
+  --tertiary-orange: #FC5217;
+  --tertiary-green: #3BA035;
+
+  /* Semantic Colors */
+  --background: var(--primary-midnight);
+  --foreground: var(--primary-white);
+  --card: #1a0a2e;
+  --card-border: #2d1b4e;
+  --text-muted: rgba(255, 255, 255, 0.6);
+  --text-subtle: rgba(255, 255, 255, 0.4);
+  --accent-green: var(--tertiary-green);
+  --accent-red: var(--secondary-red);
+  --accent-orange: var(--tertiary-orange);
+  --accent-blue: var(--tertiary-blue);
+  --accent-purple: var(--primary-purple);
+
+  --font-sans: 'Alliance No.2', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: 'PP Supply Mono', ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+}
+
+/* Violet grid background */
+.bg-grid {
+  background-color: #ddd5f0;
+  background-image: url('/violet-grid.png');
+  background-size: 100% auto;
+  background-position: top center;
+  background-repeat: repeat-y;
+}
+
+/* Apply mono font to code elements */
+code, pre, kbd, samp {
+  font-family: var(--font-mono);
+}
+
+/* Custom scrollbar for dark theme */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--card);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--card-border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #3d2b5e;
+}

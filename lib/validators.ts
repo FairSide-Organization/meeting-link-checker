@@ -67,6 +67,25 @@ const MEETING_KEYWORDS = [
   "meeting",
 ];
 
+/**
+ * Common ASCII "confusables" used for lookalike/typosquatting domains.
+ * Note: This is intentionally conservative and only used as a heuristic.
+ */
+const ASCII_CONFUSABLES: Record<string, string> = {
+  "0": "o",
+  "1": "l",
+  "2": "z",
+  "3": "e",
+  "4": "a",
+  "5": "s",
+  "6": "g",
+  "7": "t",
+  "8": "b",
+  "9": "g",
+  "@": "a",
+  "$": "s",
+};
+
 // Cyrillic and other homoglyph characters that look like Latin letters
 // These are commonly used in phishing attacks
 const HOMOGLYPH_MAP: Record<string, string> = {
@@ -448,6 +467,138 @@ function normalizeTrailingDot(hostname: string): string {
 }
 
 /**
+ * Normalize a hostname into a "visual skeleton" for ASCII lookalikes.
+ * Examples:
+ * - calend1y.com -> calendlycom
+ * - z00m.us -> zoomus
+ */
+function asciiSkeleton(hostname: string): string {
+  const lower = hostname.toLowerCase();
+  let out = "";
+  for (const ch of lower) {
+    // Remove separators so "zoom-us" and "zoom.us" are compared consistently.
+    if (ch === "." || ch === "-" || ch === "_" || ch === " " || ch === "\t") continue;
+    out += ASCII_CONFUSABLES[ch] ?? ch;
+  }
+  return out;
+}
+
+/**
+ * Return a simple "base domain-like" string: the last 2 labels.
+ * This is NOT a full public suffix list implementation, but works well
+ * for common meeting-link domains (e.g., calendly.com, zoom.us, discord.gg).
+ */
+function baseDomainLike(hostname: string): string {
+  const parts = hostname.split(".").filter(Boolean);
+  if (parts.length <= 2) return parts.join(".");
+  return parts.slice(-2).join(".");
+}
+
+/**
+ * Levenshtein distance for small strings (typosquatting heuristic).
+ */
+function levenshtein(a: string, b: string): number {
+  if (a === b) return 0;
+  if (a.length === 0) return b.length;
+  if (b.length === 0) return a.length;
+
+  // Ensure a is the shorter string to reduce memory.
+  if (a.length > b.length) [a, b] = [b, a];
+
+  const prev = new Array(a.length + 1);
+  const curr = new Array(a.length + 1);
+
+  for (let i = 0; i <= a.length; i++) prev[i] = i;
+
+  for (let j = 1; j <= b.length; j++) {
+    curr[0] = j;
+    const bj = b.charCodeAt(j - 1);
+    for (let i = 1; i <= a.length; i++) {
+      const cost = a.charCodeAt(i - 1) === bj ? 0 : 1;
+      curr[i] = Math.min(
+        prev[i] + 1, // deletion
+        curr[i - 1] + 1, // insertion
+        prev[i - 1] + cost // substitution
+      );
+    }
+    for (let i = 0; i <= a.length; i++) prev[i] = curr[i];
+  }
+  return prev[a.length];
+}
+
+/**
+ * General typosquatting / lookalike heuristic against known platform domains.
+ * Catches common patterns like "calend1y.com" by comparing ASCII skeletons
+ * and small edit distances against legitimate base domains.
+ */
+function checkTyposquattingHeuristic(hostname: string): { isTyposquat: boolean; severity?: "dangerous" | "suspicious"; platform?: string; reason?: string } {
+  const normalizedHostname = normalizeTrailingDot(hostname.toLowerCase());
+  const hostSkeleton = asciiSkeleton(normalizedHostname);
+
+  const candidateBase = baseDomainLike(normalizedHostname);
+  const candidateBaseSkeleton = asciiSkeleton(candidateBase);
+
+  for (const [legitDomain, config] of Object.entries(LEGITIMATE_PLATFORMS)) {
+    const legit = legitDomain.toLowerCase();
+
+    // If it's actually a legit domain or a legit subdomain, ignore.
+    if (normalizedHostname === legit || normalizedHostname.endsWith("." + legit)) continue;
+
+    const legitBase = baseDomainLike(legit);
+    const legitBaseSkeleton = asciiSkeleton(legitBase);
+
+    // High-confidence: ASCII skeleton matches a known platform base domain.
+    // Example: calend1y.com -> calendly.com
+    if (candidateBaseSkeleton === legitBaseSkeleton && candidateBase !== legitBase) {
+      return {
+        isTyposquat: true,
+        severity: "dangerous",
+        platform: config.name,
+        reason: `Possible lookalike/typosquatting domain (ASCII lookalike characters) targeting ${config.name}`,
+      };
+    }
+
+    // Also catch cases where the *full* hostname skeleton matches a legit domain skeleton.
+    // Example: meet.go0gle.com -> meet.google.com
+    const legitSkeleton = asciiSkeleton(legit);
+    if (hostSkeleton === legitSkeleton && normalizedHostname !== legit) {
+      return {
+        isTyposquat: true,
+        severity: "dangerous",
+        platform: config.name,
+        reason: `Possible lookalike/typosquatting hostname (ASCII lookalike characters) targeting ${config.name}`,
+      };
+    }
+
+    // Lower-confidence: small edit distance on the base domain-like string.
+    // Restrict by same TLD label to reduce false positives.
+    const candidateTld = candidateBase.split(".").pop();
+    const legitTld = legitBase.split(".").pop();
+    if (!candidateTld || !legitTld || candidateTld !== legitTld) continue;
+
+    const a = candidateBase.replace(/\./g, "");
+    const b = legitBase.replace(/\./g, "");
+    const maxLen = Math.max(a.length, b.length);
+    if (Math.abs(a.length - b.length) > 2) continue;
+
+    // Dynamic threshold: allow 1 edit for short domains, 2 for longer.
+    const threshold = maxLen <= 8 ? 1 : 2;
+    if (levenshtein(a, b) <= threshold) {
+      // Lower-confidence: use this as "suspicious" rather than outright "dangerous"
+      // to avoid false positives on unrelated domains.
+      return {
+        isTyposquat: true,
+        severity: "suspicious",
+        platform: config.name,
+        reason: `Possible typosquatting domain (looks similar to ${legitBase}) targeting ${config.name}`,
+      };
+    }
+  }
+
+  return { isTyposquat: false };
+}
+
+/**
  * Check if URL has a trailing dot in the hostname (suspicious pattern)
  * While technically valid in DNS, trailing dots in URLs are extremely rare
  * and often indicate an attempt to bypass security checks
@@ -715,7 +866,24 @@ export function validateMeetingLink(input: string): ValidationResult {
     };
   }
 
-  // FOURTH: Check if it looks like it's trying to be a meeting link (suspicious)
+  // FOURTH: General typosquatting / lookalike heuristic
+  // Catches domains like calend1y.com that aren't in the explicit pattern list.
+  const typoCheck = checkTyposquattingHeuristic(hostname);
+  if (typoCheck.isTyposquat) {
+    return {
+      status: typoCheck.severity ?? "dangerous",
+      platform: typoCheck.platform,
+      message:
+        typoCheck.severity === "suspicious"
+          ? "Possible typosquatting domain detected"
+          : "Possible typosquatting / lookalike domain detected!",
+      details: typoCheck.reason,
+      originalUrl: input,
+      hostname,
+    };
+  }
+
+  // FIFTH: Check if it looks like it's trying to be a meeting link (suspicious)
   if (looksLikeMeetingLink(hostname, pathname)) {
     return {
       status: "suspicious",

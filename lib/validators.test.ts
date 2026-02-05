@@ -241,6 +241,14 @@ describe("fragment trick", () => {
     // zoom.us is a legitimate platform, fragment with meeting keywords shouldn't trigger
     expectStatus("https://zoom.us/j/123#teams", "safe");
   });
+
+  it("detects evil.com/#slack.com (newly synced keyword)", () => {
+    expectStatus("evil.com/#slack.com", "dangerous");
+  });
+
+  it("detects evil.com/#skype (newly synced keyword)", () => {
+    expectStatus("evil.com/#skype", "dangerous");
+  });
 });
 
 // ─── Query parameter redirect trick ─────────────────────────────────────────
@@ -257,6 +265,20 @@ describe("query param redirect trick", () => {
   it("detects url=meet.google.com on non-meeting domain", () => {
     expectStatus("https://evil.com/?url=meet.google.com/abc", "dangerous");
   });
+
+  it("detects redirect=slack.com on non-meeting domain (newly synced)", () => {
+    expectStatus(
+      "https://evil.com/?redirect=https://slack.com/huddle",
+      "dangerous",
+    );
+  });
+
+  it("detects redirect=signal.group on non-meeting domain (newly synced)", () => {
+    expectStatus(
+      "https://evil.com/?redirect=https://signal.group/abc",
+      "dangerous",
+    );
+  });
 });
 
 // ─── @ symbol (userinfo) trick ───────────────────────────────────────────────
@@ -269,6 +291,10 @@ describe("@ symbol trick", () => {
 
   it("detects meet.google.com@evil.com", () => {
     expectStatus("https://meet.google.com@evil.com/abc", "dangerous");
+  });
+
+  it("detects slack.com@evil.com (newly synced keyword)", () => {
+    expectStatus("https://slack.com@evil.com/huddle", "dangerous");
   });
 });
 
@@ -408,17 +434,40 @@ describe("subdomain tricks", () => {
   });
 });
 
-// ─── Phishing patterns — lookalike characters ────────────────────────────────
+// ─── Digit lookalike attacks (0→o, 1→l) ─────────────────────────────────────
 
-describe("lookalike character phishing", () => {
-  it("flags z00m (zeros instead of o)", () => {
-    expectStatus("https://z00m.us/j/123", "dangerous");
+describe("digit lookalike attacks", () => {
+  it("flags z00m.us (0 for o in zoom)", () => {
+    const r = expectStatus("https://z00m.us/j/123", "dangerous");
+    expect(r.message).toMatch(/Digit lookalike/i);
   });
 
-  it("flags zo0m.us", () => {
+  it("flags zo0m.us (single 0 for o)", () => {
     expectStatus("https://zo0m.us/j/123", "dangerous");
   });
 
+  it("flags s1ack.com (1 for l in slack)", () => {
+    const r = expectStatus("https://s1ack.com/huddle", "dangerous");
+    expect(r.message).toMatch(/Digit lookalike/i);
+  });
+
+  it("flags l00m.com (0 for o in loom)", () => {
+    expectStatus("https://l00m.com/share/abc", "dangerous");
+  });
+
+  it("flags g0t0.com (0 for o in goto)", () => {
+    expectStatus("https://g0t0.com/meeting", "dangerous");
+  });
+
+  it("does NOT flag legitimate domains with digits", () => {
+    // web01.example.com normalizes to webo1.example.com — no meeting keyword
+    expectStatus("https://web01.example.com", "not_meeting_link");
+  });
+});
+
+// ─── Phishing patterns — lookalike characters ────────────────────────────────
+
+describe("lookalike character phishing", () => {
   it("flags 2oom (2 instead of z)", () => {
     expectStatus("https://2oom.us/j/123", "dangerous");
   });

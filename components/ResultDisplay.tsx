@@ -6,78 +6,73 @@ interface ResultDisplayProps {
   result: ValidationResult;
 }
 
-export function ResultDisplay({ result }: ResultDisplayProps) {
-  const statusConfig = {
-    safe: {
-      icon: (
-        <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-        </svg>
-      ),
-      bgColor: "bg-[#3BA035]/5",
-      borderColor: "border-[#3BA035]/30",
-      accentColor: "border-l-[#3BA035]",
-      textColor: "text-[#3BA035]",
-      label: "VERIFIED DOMAIN",
-    },
-    suspicious: {
-      icon: (
-        <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-        </svg>
-      ),
-      bgColor: "bg-[#FC5217]/5",
-      borderColor: "border-[#FC5217]/30",
-      accentColor: "border-l-[#FC5217]",
-      textColor: "text-[#FC5217]",
-      label: "SUSPICIOUS",
-    },
-    dangerous: {
-      icon: (
-        <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-      ),
-      bgColor: "bg-[#CC192E]/5",
-      borderColor: "border-[#CC192E]/30",
-      accentColor: "border-l-[#CC192E]",
-      textColor: "text-[#CC192E]",
-      label: "DANGER - LIKELY PHISHING",
-    },
-    not_meeting_link: {
-      icon: (
-        <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-      ),
-      bgColor: "bg-[#3C95E5]/5",
-      borderColor: "border-[#3C95E5]/30",
-      accentColor: "border-l-[#3C95E5]",
-      textColor: "text-[#3C95E5]",
-      label: "NOT A MEETING LINK",
-    },
-    unverifiable: {
-      icon: (
-        <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-      ),
-      bgColor: "bg-[#8750FF]/5",
-      borderColor: "border-[#8750FF]/30",
-      accentColor: "border-l-[#8750FF]",
-      textColor: "text-[#8750FF]",
-      label: "CANNOT VERIFY",
-    },
-  };
+type StatusKey = ValidationResult["status"];
 
-  const config = statusConfig[result.status];
+interface StatusConfig {
+  iconPath: string;
+  bgColor: string;
+  borderColor: string;
+  accentColor: string;
+  textColor: string;
+  label: string;
+}
+
+const STATUS_CONFIG: Record<StatusKey, StatusConfig> = {
+  safe: {
+    iconPath: "M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z",
+    bgColor: "bg-[#3BA035]/5",
+    borderColor: "border-[#3BA035]/30",
+    accentColor: "border-l-[#3BA035]",
+    textColor: "text-[#3BA035]",
+    label: "VERIFIED DOMAIN",
+  },
+  suspicious: {
+    iconPath: "M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z",
+    bgColor: "bg-[#FC5217]/5",
+    borderColor: "border-[#FC5217]/30",
+    accentColor: "border-l-[#FC5217]",
+    textColor: "text-[#FC5217]",
+    label: "SUSPICIOUS",
+  },
+  dangerous: {
+    iconPath: "M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z",
+    bgColor: "bg-[#CC192E]/5",
+    borderColor: "border-[#CC192E]/30",
+    accentColor: "border-l-[#CC192E]",
+    textColor: "text-[#CC192E]",
+    label: "DANGER - LIKELY PHISHING",
+  },
+  not_meeting_link: {
+    iconPath: "M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z",
+    bgColor: "bg-[#3C95E5]/5",
+    borderColor: "border-[#3C95E5]/30",
+    accentColor: "border-l-[#3C95E5]",
+    textColor: "text-[#3C95E5]",
+    label: "NOT A MEETING LINK",
+  },
+  unverifiable: {
+    iconPath: "M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z",
+    bgColor: "bg-[#8750FF]/5",
+    borderColor: "border-[#8750FF]/30",
+    accentColor: "border-l-[#8750FF]",
+    textColor: "text-[#8750FF]",
+    label: "CANNOT VERIFY",
+  },
+};
+
+export function ResultDisplay({ result }: ResultDisplayProps) {
+  const config = STATUS_CONFIG[result.status];
 
   return (
     <div
       className={`mt-6 p-6 rounded-2xl border ${config.borderColor} ${config.bgColor} border-l-4 ${config.accentColor} bg-white shadow-sm transition-all duration-300`}
     >
       <div className="flex items-start gap-4">
-        <div className={`${config.textColor} flex-shrink-0`}>{config.icon}</div>
+        <div className={`${config.textColor} flex-shrink-0`}>
+          <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={config.iconPath} />
+          </svg>
+        </div>
         <div className="flex-1 min-w-0">
           <div className={`text-xs font-bold tracking-wider ${config.textColor} mb-1`}>
             {config.label}

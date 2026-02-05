@@ -109,7 +109,7 @@ code, pre, kbd, samp {
   font-family: var(--font-mono);
 }
 
-/* Custom scrollbar for dark theme */
+/* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
 }

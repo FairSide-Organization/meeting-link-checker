@@ -6,6 +6,9 @@ export const metadata: Metadata = {
   title: "Meeting Link Checker | Fairside Security",
   description: "Verify meeting links are legitimate before clicking. Protect yourself from phishing scams targeting crypto users.",
   keywords: ["meeting link checker", "zoom phishing", "crypto security", "fairside", "link verification"],
+  icons: {
+    icon: "/fairside-logo-purple.png",
+  },
   openGraph: {
     title: "Meeting Link Checker | Fairside Security",
     description: "Verify meeting links are legitimate before clicking. Protect yourself from phishing scams.",

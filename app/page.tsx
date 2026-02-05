@@ -9,6 +9,8 @@ export default function Home() {
       <div className="pt-6 px-6">
         <a
           href="https://fairside.io"
+          target="_blank"
+          rel="noopener noreferrer"
           className="inline-flex items-center gap-2 text-[#110320]/50 hover:text-[#110320]/80 text-sm transition-colors"
         >
           <Image
@@ -53,7 +55,7 @@ export default function Home() {
         <div className="max-w-4xl mx-auto px-4 text-center">
           <p className="text-[#110320]/60 text-sm">
             Built by{" "}
-            <a href="https://fairside.io" className="text-[#8750FF] hover:underline transition-colors">
+            <a href="https://fairside.io" target="_blank" rel="noopener noreferrer" className="text-[#8750FF] hover:underline transition-colors">
               Fairside
             </a>{" "}
             to help keep you safe online.

@@ -1,5 +1,10 @@
 export type ValidationResult = {
-  status: "safe" | "suspicious" | "dangerous" | "not_meeting_link" | "unverifiable";
+  status:
+    | "safe"
+    | "suspicious"
+    | "dangerous"
+    | "not_meeting_link"
+    | "unverifiable";
   platform?: string;
   message: string;
   details?: string;
@@ -48,6 +53,33 @@ const LEGITIMATE_PLATFORMS: Record<
   "twitter.com": { name: "Twitter/X" },
   "x.com": { name: "Twitter/X" },
 
+  // Slack
+  "slack.com": { name: "Slack", subdomainPattern: /^[a-z0-9-]+$/ },
+
+  // GoTo Meeting
+  "gotomeeting.com": { name: "GoTo Meeting" },
+  "goto.com": { name: "GoTo", subdomainPattern: /^[a-z0-9-]+$/ },
+
+  // Jitsi Meet
+  "meet.jit.si": { name: "Jitsi Meet" },
+
+  // Amazon Chime
+  "chime.aws": { name: "Amazon Chime" },
+
+  // Loom
+  "loom.com": { name: "Loom", subdomainPattern: /^[a-z0-9-]+$/ },
+
+  // Riverside
+  "riverside.fm": { name: "Riverside" },
+
+  // Skype
+  "join.skype.com": { name: "Skype" },
+  "skype.com": { name: "Skype", subdomainPattern: /^[a-z0-9-]+$/ },
+
+  // Signal
+  "signal.group": { name: "Signal" },
+  "signal.me": { name: "Signal" },
+
   // Additional platforms
   "whereby.com": { name: "Whereby" },
 };
@@ -65,119 +97,121 @@ const MEETING_KEYWORDS = [
   "conference",
   "video",
   "meeting",
+  "slack",
+  "goto",
+  "gotomeeting",
+  "jitsi",
+  "chime",
+  "loom",
+  "skype",
 ];
 
 // Cyrillic and other homoglyph characters that look like Latin letters
 // These are commonly used in phishing attacks
 const HOMOGLYPH_MAP: Record<string, string> = {
-  'а': 'a', // Cyrillic
-  'е': 'e', // Cyrillic
-  'о': 'o', // Cyrillic
-  'р': 'p', // Cyrillic
-  'с': 'c', // Cyrillic
-  'у': 'y', // Cyrillic
-  'х': 'x', // Cyrillic
-  'і': 'i', // Cyrillic
-  'ј': 'j', // Cyrillic
-  'ѕ': 's', // Cyrillic
-  'ԁ': 'd', // Cyrillic
-  'ɡ': 'g', // Latin small letter script g
-  'ո': 'n', // Armenian
-  'օ': 'o', // Armenian
-  'ս': 's', // Armenian
-  'ա': 'a', // Armenian
-  'ß': 'ss', // German
-  'ı': 'i', // Turkish dotless i
-  '0': 'o', // Number zero
-  '1': 'l', // Number one
+  а: "a", // Cyrillic
+  е: "e", // Cyrillic
+  о: "o", // Cyrillic
+  р: "p", // Cyrillic
+  с: "c", // Cyrillic
+  у: "y", // Cyrillic
+  х: "x", // Cyrillic
+  і: "i", // Cyrillic
+  ј: "j", // Cyrillic
+  ѕ: "s", // Cyrillic
+  ԁ: "d", // Cyrillic
+  ɡ: "g", // Latin small letter script g
+  ո: "n", // Armenian
+  օ: "o", // Armenian
+  ս: "s", // Armenian
+  ա: "a", // Armenian
+  ß: "ss", // German
+  ı: "i", // Turkish dotless i
 };
 
 // URL shorteners and redirect services that we cannot verify
 // These hide the true destination and could redirect to phishing sites
 const URL_SHORTENERS = [
   // Popular shorteners
-  'bit.ly',
-  'tinyurl.com',
-  't.co',
-  'goo.gl',
-  'ow.ly',
-  'is.gd',
-  'buff.ly',
-  'adf.ly',
-  'bit.do',
-  'mcaf.ee',
-  'su.pr',
-  'tiny.cc',
-  'yourls.org',
-  'v.gd',
-  'tr.im',
-  'cli.gs',
-  'short.to',
-  'budurl.com',
-  'ping.fm',
-  'post.ly',
-  'just.as',
-  'bkite.com',
-  'snipr.com',
-  'fic.kr',
-  'loopt.us',
-  'doiop.com',
-  'twitthis.com',
-  'htxt.it',
-  'ak.ent',
-  'yep.it',
-  'posted.at',
-  'xrl.us',
-  'metamark.net',
-  'sn.im',
-  'hurl.ws',
-  'eepurl.com',
-  'idek.net',
-  'urlpire.com',
-  'chilp.it',
-  'moourl.com',
-  'snipurl.com',
-  'linkbee.com',
-  'x.co',
-  'lnkd.in',
-  'db.tt',
-  'qr.ae',
-  'cur.lv',
-  'ity.im',
-  'q.gs',
-  'po.st',
-  'bc.vc',
-  'twit.ac',
-  'su.pr',
-  'j.mp',
-  'buzurl.com',
-  'cutt.us',
-  'u.bb',
-  'yourls.org',
-  'crisco.com',
-  'x.co',
-  'prettylinkpro.com',
-  'viralurl.com',
-  'cutt.ly',
-  'rb.gy',
-  'shorturl.at',
-  's.id',
-  'rotf.lol',
-  'rebrand.ly',
-  'bl.ink',
-  'short.io',
-  'hypr.ink',
-  'linktr.ee',
+  "bit.ly",
+  "tinyurl.com",
+  "t.co",
+  "goo.gl",
+  "ow.ly",
+  "is.gd",
+  "buff.ly",
+  "adf.ly",
+  "bit.do",
+  "mcaf.ee",
+  "su.pr",
+  "tiny.cc",
+  "yourls.org",
+  "v.gd",
+  "tr.im",
+  "cli.gs",
+  "short.to",
+  "budurl.com",
+  "ping.fm",
+  "post.ly",
+  "just.as",
+  "bkite.com",
+  "snipr.com",
+  "fic.kr",
+  "loopt.us",
+  "doiop.com",
+  "twitthis.com",
+  "htxt.it",
+  "ak.ent",
+  "yep.it",
+  "posted.at",
+  "xrl.us",
+  "metamark.net",
+  "sn.im",
+  "hurl.ws",
+  "eepurl.com",
+  "idek.net",
+  "urlpire.com",
+  "chilp.it",
+  "moourl.com",
+  "snipurl.com",
+  "linkbee.com",
+  "x.co",
+  "lnkd.in",
+  "db.tt",
+  "qr.ae",
+  "cur.lv",
+  "ity.im",
+  "q.gs",
+  "po.st",
+  "bc.vc",
+  "twit.ac",
+  "j.mp",
+  "buzurl.com",
+  "cutt.us",
+  "u.bb",
+  "crisco.com",
+  "prettylinkpro.com",
+  "viralurl.com",
+  "cutt.ly",
+  "rb.gy",
+  "shorturl.at",
+  "s.id",
+  "rotf.lol",
+  "rebrand.ly",
+  "bl.ink",
+  "short.io",
+  "hypr.ink",
+  "linktr.ee",
   // More shorteners
-  'dub.sh',
-  'dub.co',
-  'short.cm',
-  'shrtco.de',
-  'shor.by',
-  'qr.io',
-  'clck.ru',
-  'clk.sh',
-  'shortcm.li',
+  "dub.sh",
+  "dub.co",
+  "short.cm",
+  "shrtco.de",
+  "shor.by",
+  "qr.io",
+  "clck.ru",
+  "clk.sh",
+  "shortcm.li",
   // Open redirect services (Google, Facebook, etc.)
   // Note: We check for specific redirect patterns below
 ];
@@ -205,7 +239,7 @@ function isUrlShortener(hostname: string, fullUrl: string): boolean {
 
   // Check for open redirect patterns
   for (const pattern of OPEN_REDIRECT_PATTERNS) {
-    if (pattern.test(fullUrl.replace(/^https?:\/\//, ''))) {
+    if (pattern.test(fullUrl.replace(/^https?:\/\//, ""))) {
       return true;
     }
   }
@@ -239,81 +273,121 @@ function containsHomoglyphs(str: string): boolean {
  */
 function isPunycode(hostname: string): boolean {
   // Check if any part of the domain starts with xn--
-  return hostname.split('.').some(part => part.startsWith('xn--'));
-}
-
-/**
- * Check if a punycode domain is trying to impersonate a known platform
- */
-function isPunycodePhishing(hostname: string): boolean {
-  // Known platform keywords that attackers might try to spoof
-  const targetKeywords = ['zoom', 'meet', 'teams', 'google', 'microsoft', 'discord', 'telegram', 'calendly'];
-
-  // Get the non-punycode parts of the hostname
-  const parts = hostname.split('.');
-  const regularParts = parts.filter(p => !p.startsWith('xn--')).join('.');
-
-  // Check if the regular parts contain any target keywords
-  // e.g., xn--zm-fmca.us has "us" as regular part
-  // But the punycode part is trying to look like "zoom"
-  for (const keyword of targetKeywords) {
-    // Check if regular parts would form a legitimate-looking domain
-    if (regularParts.includes(keyword.slice(-2)) || regularParts === 'us' || regularParts === 'com') {
-      return true;
-    }
-  }
-
-  // Any punycode domain that looks like it could be a meeting platform is suspicious
-  return true;
+  return hostname.split(".").some((part) => part.startsWith("xn--"));
 }
 
 // Common phishing patterns - these are checked AFTER legitimate platform check
 const PHISHING_PATTERNS = [
   // Subdomain tricks: zoom.something.com instead of something.zoom.us
   // This catches zoom.webus05.us (the scam from the tweet)
-  { pattern: /^zoom\.[a-z0-9-]+\.(com|us|net|org|io)$/i, description: "Subdomain trick - 'zoom' should be the main domain, not a subdomain" },
-  { pattern: /^meet\.[a-z0-9-]+\.(com|us|net|org|io)$/i, description: "Subdomain trick - suspicious 'meet' subdomain" },
-  { pattern: /^teams\.[a-z0-9-]+\.(com|us|net|org|io)$/i, description: "Subdomain trick - suspicious 'teams' subdomain" },
+  // Uses [a-z]{2,} to match ANY TLD (not just com/us/net/org/io)
+  {
+    pattern: /^zoom\.[a-z0-9-]+\.[a-z]{2,}$/i,
+    description:
+      "Subdomain trick - 'zoom' should be the main domain, not a subdomain",
+  },
+  {
+    pattern: /^meet\.[a-z0-9-]+\.[a-z]{2,}$/i,
+    description: "Subdomain trick - suspicious 'meet' subdomain",
+  },
+  {
+    pattern: /^teams\.[a-z0-9-]+\.[a-z]{2,}$/i,
+    description: "Subdomain trick - suspicious 'teams' subdomain",
+  },
+  {
+    pattern: /^slack\.[a-z0-9-]+\.[a-z]{2,}$/i,
+    description: "Subdomain trick - suspicious 'slack' subdomain",
+  },
+  {
+    pattern: /^skype\.[a-z0-9-]+\.[a-z]{2,}$/i,
+    description: "Subdomain trick - suspicious 'skype' subdomain",
+  },
 
   // Lookalike characters - must contain at least one 0 (zero) instead of o
-  { pattern: /z[o0]*0[o0]*m/i, description: "Lookalike characters detected - '0' (zero) used instead of 'o'" },
-  { pattern: /2oom/i, description: "Lookalike characters detected - '2' used instead of 'z'" },
+  {
+    pattern: /z[o0]*0[o0]*m/i,
+    description:
+      "Lookalike characters detected - '0' (zero) used instead of 'o'",
+  },
+  {
+    pattern: /2oom/i,
+    description: "Lookalike characters detected - '2' used instead of 'z'",
+  },
 
   // Extra words added to zoom (in any position with hyphen or underscore)
-  { pattern: /zoom[-_](meeting|call|video|conference)/i, description: "Suspicious extra words in domain" },
-  { pattern: /(meeting|call|video|conference)[-_]zoom/i, description: "Suspicious extra words in domain" },
+  {
+    pattern: /zoom[-_](meeting|call|video|conference)/i,
+    description: "Suspicious extra words in domain",
+  },
+  {
+    pattern: /(meeting|call|video|conference)[-_]zoom/i,
+    description: "Suspicious extra words in domain",
+  },
 
   // Wrong TLD patterns - legitimate domain appears as subdomain of malicious domain
   // Catches: zoom.us.malicious.com, zoom.us.attacker.com, etc.
-  { pattern: /zoom\.us\.[a-z0-9-]+\.[a-z]+$/i, description: "Fake domain - 'zoom.us' is being used as a subdomain of another site" },
-  { pattern: /google\.com\.[a-z0-9-]+\.[a-z]+$/i, description: "Fake domain - 'google.com' is being used as a subdomain of another site" },
-  { pattern: /microsoft\.com\.[a-z0-9-]+\.[a-z]+$/i, description: "Fake domain - 'microsoft.com' is being used as a subdomain of another site" },
+  {
+    pattern: /zoom\.us\.[a-z0-9-]+\.[a-z]+$/i,
+    description:
+      "Fake domain - 'zoom.us' is being used as a subdomain of another site",
+  },
+  {
+    pattern: /google\.com\.[a-z0-9-]+\.[a-z]+$/i,
+    description:
+      "Fake domain - 'google.com' is being used as a subdomain of another site",
+  },
+  {
+    pattern: /microsoft\.com\.[a-z0-9-]+\.[a-z]+$/i,
+    description:
+      "Fake domain - 'microsoft.com' is being used as a subdomain of another site",
+  },
 
   // Also catch simpler wrong TLD: zoom.us.com, meet.google.org, etc
-  { pattern: /^zoom\.us\.(com|net|org|io|co)$/i, description: "Wrong TLD - legitimate Zoom uses zoom.us, not zoom.us.com" },
+  {
+    pattern: /^zoom\.us\.[a-z]{2,}$/i,
+    description: "Wrong TLD - legitimate Zoom uses zoom.us, not zoom.us.com",
+  },
 
   // Typosquatting
   { pattern: /zooom/i, description: "Typosquatting detected (extra 'o')" },
-  { pattern: /zomm\./i, description: "Typosquatting detected (swapped letters)" },
+  {
+    pattern: /zomm\./i,
+    description: "Typosquatting detected (swapped letters)",
+  },
   { pattern: /zoim/i, description: "Typosquatting detected (typo)" },
   { pattern: /zoomus\./i, description: "Typosquatting detected (missing dot)" },
 
   // Catch "secure-" or other prefixes with zoom.us pattern
-  { pattern: /[a-z]+-zoom\.us\./i, description: "Suspicious prefix added to zoom domain" },
+  {
+    pattern: /[a-z]+-zoom\.us\./i,
+    description: "Suspicious prefix added to zoom domain",
+  },
 ];
 
 /**
  * Check for fragment/hash trick where meeting platform name appears after #
  * Example: evil.com/#zoom.us - user sees "zoom.us" but real domain is evil.com
  */
-function checkFragmentTrick(input: string): { hasTrick: boolean; realDomain?: string; fakePart?: string } {
-  const meetingKeywords = ['zoom', 'meet', 'teams', 'webex', 'calendly', 'discord', 'telegram'];
+function checkFragmentTrick(input: string): {
+  hasTrick: boolean;
+  realDomain?: string;
+  fakePart?: string;
+} {
+  const meetingKeywords = [
+    "zoom",
+    "meet",
+    "teams",
+    "webex",
+    "calendly",
+    "discord",
+    "telegram",
+  ];
 
   // Check for hash/fragment containing meeting keywords
-  const hashIndex = input.indexOf('#');
+  const hashIndex = input.indexOf("#");
   if (hashIndex > -1) {
     const fragment = input.slice(hashIndex + 1).toLowerCase();
-    const hasKeyword = meetingKeywords.some(kw => fragment.includes(kw));
+    const hasKeyword = meetingKeywords.some((kw) => fragment.includes(kw));
 
     if (hasKeyword) {
       // Extract the real domain
@@ -324,7 +398,9 @@ function checkFragmentTrick(input: string): { hasTrick: boolean; realDomain?: st
         const realDomain = parsed.hostname;
 
         // Check if real domain is NOT a legitimate meeting platform
-        if (!Object.keys(LEGITIMATE_PLATFORMS).some(d => realDomain.endsWith(d))) {
+        if (
+          !Object.keys(LEGITIMATE_PLATFORMS).some((d) => realDomain.endsWith(d))
+        ) {
           return { hasTrick: true, realDomain, fakePart: fragment };
         }
       } catch {
@@ -341,9 +417,31 @@ function checkFragmentTrick(input: string): { hasTrick: boolean; realDomain?: st
  * Check for query parameter trick where redirect params contain meeting keywords
  * Example: auth.com/?redirect=zoom.us - looks legitimate but goes to auth.com
  */
-function checkQueryParamTrick(input: string): { hasTrick: boolean; realDomain?: string; suspiciousParam?: string } {
-  const meetingKeywords = ['zoom.us', 'meet.google', 'teams.microsoft', 'webex.com', 'calendly.com', 'discord.com'];
-  const redirectParams = ['redirect', 'url', 'next', 'continue', 'return', 'goto', 'dest', 'destination', 'redir', 'target'];
+function checkQueryParamTrick(input: string): {
+  hasTrick: boolean;
+  realDomain?: string;
+  suspiciousParam?: string;
+} {
+  const meetingKeywords = [
+    "zoom.us",
+    "meet.google",
+    "teams.microsoft",
+    "webex.com",
+    "calendly.com",
+    "discord.com",
+  ];
+  const redirectParams = [
+    "redirect",
+    "url",
+    "next",
+    "continue",
+    "return",
+    "goto",
+    "dest",
+    "destination",
+    "redir",
+    "target",
+  ];
 
   try {
     let url = input;
@@ -353,14 +451,24 @@ function checkQueryParamTrick(input: string): { hasTrick: boolean; realDomain?: 
 
     // Check if any redirect-like param contains meeting platform keywords
     for (const [key, value] of params) {
-      const isRedirectParam = redirectParams.some(p => key.toLowerCase().includes(p));
-      const hasMeetingKeyword = meetingKeywords.some(kw => value.toLowerCase().includes(kw));
+      const isRedirectParam = redirectParams.some((p) =>
+        key.toLowerCase().includes(p),
+      );
+      const hasMeetingKeyword = meetingKeywords.some((kw) =>
+        value.toLowerCase().includes(kw),
+      );
 
       if (isRedirectParam && hasMeetingKeyword) {
         // Check if the main domain is NOT a legitimate meeting platform
         const realDomain = parsed.hostname;
-        if (!Object.keys(LEGITIMATE_PLATFORMS).some(d => realDomain.endsWith(d))) {
-          return { hasTrick: true, realDomain, suspiciousParam: `${key}=${value}` };
+        if (
+          !Object.keys(LEGITIMATE_PLATFORMS).some((d) => realDomain.endsWith(d))
+        ) {
+          return {
+            hasTrick: true,
+            realDomain,
+            suspiciousParam: `${key}=${value}`,
+          };
         }
       }
     }
@@ -380,11 +488,11 @@ function isIpAddress(hostname: string): boolean {
     return true;
   }
   // IPv6 (simplified check)
-  if (hostname.includes(':') && /^[0-9a-f:]+$/i.test(hostname)) {
+  if (hostname.includes(":") && /^[0-9a-f:]+$/i.test(hostname)) {
     return true;
   }
   // Localhost
-  if (hostname === 'localhost') {
+  if (hostname === "localhost") {
     return true;
   }
   return false;
@@ -396,13 +504,13 @@ function isIpAddress(hostname: string): boolean {
 function isLocalFilePath(input: string): boolean {
   const lower = input.toLowerCase().trim();
   return (
-    lower.startsWith('file://') ||
-    lower.startsWith('file:///') ||
+    lower.startsWith("file://") ||
+    lower.startsWith("file:///") ||
     /^[a-z]:\\/i.test(input) || // Windows path like C:\
-    lower.startsWith('/users/') ||
-    lower.startsWith('/home/') ||
-    lower.startsWith('~/') ||
-    lower.startsWith('./')
+    lower.startsWith("/users/") ||
+    lower.startsWith("/home/") ||
+    lower.startsWith("~/") ||
+    lower.startsWith("./")
   );
 }
 
@@ -411,22 +519,36 @@ function isLocalFilePath(input: string): boolean {
  * Example: https://zoom.us@evil.com/j/123 - the actual domain is evil.com, not zoom.us
  * This is a common phishing technique to make URLs look legitimate
  */
-function containsAtTrick(input: string): { hasTrick: boolean; fakeDomain?: string; realDomain?: string } {
+function containsAtTrick(input: string): {
+  hasTrick: boolean;
+  fakeDomain?: string;
+  realDomain?: string;
+} {
   // Look for @ in the URL after the protocol
-  const withoutProtocol = input.replace(/^https?:\/\//i, '');
+  const withoutProtocol = input.replace(/^https?:\/\//i, "");
 
   // Check if there's an @ before the first /
-  const pathStart = withoutProtocol.indexOf('/');
-  const hostPart = pathStart > -1 ? withoutProtocol.slice(0, pathStart) : withoutProtocol;
+  const pathStart = withoutProtocol.indexOf("/");
+  const hostPart =
+    pathStart > -1 ? withoutProtocol.slice(0, pathStart) : withoutProtocol;
 
-  if (hostPart.includes('@')) {
-    const parts = hostPart.split('@');
-    const fakeDomain = parts[0].split(':')[0]; // Remove port if present
-    const realDomain = parts[parts.length - 1].split(':')[0];
+  if (hostPart.includes("@")) {
+    const parts = hostPart.split("@");
+    const fakeDomain = parts[0].split(":")[0]; // Remove port if present
+    const realDomain = parts[parts.length - 1].split(":")[0];
 
     // Check if the fake domain looks like a meeting platform
-    const meetingKeywords = ['zoom', 'meet', 'teams', 'webex', 'calendly', 'discord'];
-    const looksSuspicious = meetingKeywords.some(kw => fakeDomain.toLowerCase().includes(kw));
+    const meetingKeywords = [
+      "zoom",
+      "meet",
+      "teams",
+      "webex",
+      "calendly",
+      "discord",
+    ];
+    const looksSuspicious = meetingKeywords.some((kw) =>
+      fakeDomain.toLowerCase().includes(kw),
+    );
 
     if (looksSuspicious && fakeDomain !== realDomain) {
       return { hasTrick: true, fakeDomain, realDomain };
@@ -444,7 +566,7 @@ function containsAtTrick(input: string): { hasTrick: boolean; fakeDomain?: strin
  */
 function normalizeTrailingDot(hostname: string): string {
   // Remove trailing dot(s) - technically only one is valid, but be thorough
-  return hostname.replace(/\.+$/, '');
+  return hostname.replace(/\.+$/, "");
 }
 
 /**
@@ -459,8 +581,8 @@ function hasTrailingDot(input: string): boolean {
   if (hostnameMatch) {
     const hostPart = hostnameMatch[1];
     // Remove port if present
-    const hostWithoutPort = hostPart.split(':')[0];
-    return hostWithoutPort.endsWith('.');
+    const hostWithoutPort = hostPart.split(":")[0];
+    return hostWithoutPort.endsWith(".");
   }
   return false;
 }
@@ -468,7 +590,9 @@ function hasTrailingDot(input: string): boolean {
 /**
  * Extract and validate hostname from a URL string
  */
-function parseUrl(input: string): { hostname: string; pathname: string } | null {
+function parseUrl(
+  input: string,
+): { hostname: string; pathname: string } | null {
   let url = input.trim();
 
   // Add protocol if missing
@@ -493,13 +617,19 @@ function parseUrl(input: string): { hostname: string; pathname: string } | null 
 /**
  * Check if hostname matches a legitimate platform
  */
-function checkLegitimatePlatform(hostname: string): { isLegit: boolean; platform?: string } {
+function checkLegitimatePlatform(hostname: string): {
+  isLegit: boolean;
+  platform?: string;
+} {
   // Normalize hostname (remove trailing dots) - ensures "zoom.us." matches "zoom.us"
   const normalizedHostname = normalizeTrailingDot(hostname);
 
   // Direct match
   if (LEGITIMATE_PLATFORMS[normalizedHostname]) {
-    return { isLegit: true, platform: LEGITIMATE_PLATFORMS[normalizedHostname].name };
+    return {
+      isLegit: true,
+      platform: LEGITIMATE_PLATFORMS[normalizedHostname].name,
+    };
   }
 
   // Check if it's a valid subdomain of a legitimate platform
@@ -528,7 +658,10 @@ function checkLegitimatePlatform(hostname: string): { isLegit: boolean; platform
 /**
  * Check for known phishing patterns
  */
-function checkPhishingPatterns(hostname: string): { isPhishing: boolean; reason?: string } {
+function checkPhishingPatterns(hostname: string): {
+  isPhishing: boolean;
+  reason?: string;
+} {
   // Normalize hostname (remove trailing dots) - ensures "zoom.webus05.us." matches patterns
   const normalizedHostname = normalizeTrailingDot(hostname);
 
@@ -558,6 +691,18 @@ export function validateMeetingLink(input: string): ValidationResult {
     return {
       status: "not_meeting_link",
       message: "Please enter a URL to check",
+      originalUrl: input,
+    };
+  }
+
+  // CRITICAL: Block dangerous URI schemes before any parsing
+  const lowerInput = trimmedInput.toLowerCase();
+  const dangerousSchemes = ["javascript:", "data:", "blob:", "vbscript:"];
+  if (dangerousSchemes.some((scheme) => lowerInput.startsWith(scheme))) {
+    return {
+      status: "dangerous",
+      message: "Dangerous URI scheme detected!",
+      details: `This is not a web URL. It uses a "${lowerInput.split(":")[0]}:" scheme which can execute code or load arbitrary content. Legitimate meeting links always use https:// URLs.`,
       originalUrl: input,
     };
   }
@@ -653,10 +798,11 @@ export function validateMeetingLink(input: string): ValidationResult {
   if (containsHomoglyphs(hostname)) {
     const normalized = normalizeHomoglyphs(hostname);
     // Check if it's trying to look like a legitimate platform
-    const looksLikeKnownPlatform = Object.keys(LEGITIMATE_PLATFORMS).some(domain =>
-      normalized.includes(domain.replace('.', '')) ||
-      normalized.endsWith(domain) ||
-      MEETING_KEYWORDS.some(kw => normalized.includes(kw))
+    const looksLikeKnownPlatform = Object.keys(LEGITIMATE_PLATFORMS).some(
+      (domain) =>
+        normalized.includes(domain.replace(".", "")) ||
+        normalized.endsWith(domain) ||
+        MEETING_KEYWORDS.some((kw) => normalized.includes(kw)),
     );
 
     if (looksLikeKnownPlatform) {

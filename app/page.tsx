@@ -1,6 +1,15 @@
+import dynamic from "next/dynamic";
 import Image from "next/image";
 import { LinkChecker } from "@/components/LinkChecker";
-import { SafetyTips } from "@/components/SafetyTips";
+
+const SafetyTips = dynamic(() => import("@/components/SafetyTips").then((m) => ({ default: m.SafetyTips })), {
+  loading: () => (
+    <div className="w-full max-w-2xl mx-auto mt-12 min-h-[200px] flex items-center justify-center text-[#110320]/50 text-sm">
+      Loading safety tips…
+    </div>
+  ),
+  ssr: true,
+});
 
 export default function Home() {
   return (

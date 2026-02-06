@@ -545,6 +545,115 @@ describe("suspicious / unverified meeting links", () => {
   });
 });
 
+// ─── Open redirect / abuse on meeting domains (must be dangerous) ─────────────
+
+describe("open redirect and abuse on meeting domains", () => {
+  it("flags zoom.us?redirect=https://evil.com", () => {
+    expectStatus("https://zoom.us?redirect=https://evil.com", "dangerous");
+  });
+
+  it("flags zoom.us?url=https://evil.com", () => {
+    expectStatus("https://zoom.us?url=https://evil.com", "dangerous");
+  });
+
+  it("flags zoom.us?next=https://evil.com", () => {
+    expectStatus("https://zoom.us?next=https://evil.com", "dangerous");
+  });
+
+  it("flags zoom.us?returnTo=http://evil.com", () => {
+    expectStatus("https://zoom.us?returnTo=http://evil.com", "dangerous");
+  });
+
+  it("flags meet.google.com?redirect=https://evil.com", () => {
+    expectStatus(
+      "https://meet.google.com?redirect=https://evil.com",
+      "dangerous",
+    );
+  });
+
+  it("flags zoom.us?redirect with encoded evil URL", () => {
+    expectStatus(
+      "https://zoom.us?redirect=https%3A%2F%2Fevil.com",
+      "dangerous",
+    );
+  });
+
+  it("flags zoom.us/j/123?redirect=https://evil.com", () => {
+    expectStatus(
+      "https://zoom.us/j/123?redirect=https://evil.com",
+      "dangerous",
+    );
+  });
+
+  it("flags zoom.us#redirect=https://evil.com (fragment redirect)", () => {
+    expectStatus("https://zoom.us#redirect=https://evil.com", "dangerous");
+  });
+
+  it("flags path traversal zoom.us/j/123////../@evil.com", () => {
+    expectStatus("https://zoom.us/j/123////../@evil.com", "dangerous");
+  });
+
+  it("flags zoom.us/.evil.com (path segment starting with dot)", () => {
+    expectStatus("https://zoom.us/.evil.com", "dangerous");
+  });
+
+  it("flags zoom.us?download=malware.exe", () => {
+    expectStatus("https://zoom.us?download=malware.exe", "dangerous");
+  });
+
+  it("flags zoom.us/oauth/authorize?redirect_uri=https://evil.com", () => {
+    expectStatus(
+      "https://zoom.us/oauth/authorize?client_id=evil&redirect_uri=https://evil.com",
+      "dangerous",
+    );
+  });
+
+  it("flags meet.google.com with redirect to steal-token", () => {
+    expectStatus(
+      "https://meet.google.com/abc-defg-hij?authuser=0&redirect=https://evil.com/steal-token",
+      "dangerous",
+    );
+  });
+
+  it("flags teams.microsoft.com with redirectUrl", () => {
+    expectStatus(
+      "https://teams.microsoft.com/l/meetup-join/abc?redirectUrl=https://evil.com",
+      "dangerous",
+    );
+  });
+
+  it("flags webex.com?next=javascript:alert(1)", () => {
+    expectStatus(
+      "https://webex.com/meet/john?next=javascript:alert(1)",
+      "dangerous",
+    );
+  });
+
+  it("flags path traversal with etc/passwd", () => {
+    expectStatus("https://zoom.us/j/../../etc/passwd", "dangerous");
+  });
+
+  it("flags zoom.us/phishing-page.html", () => {
+    expectStatus("https://zoom.us/phishing-page.html", "dangerous");
+  });
+
+  it("flags zoom.us:8080/j/123 (non-default port)", () => {
+    expectStatus("https://zoom.us:8080/j/123", "dangerous");
+  });
+
+  it("flags path with backslash and @ (zoom.us/j/123\\@evil.com)", () => {
+    expectStatus("https://zoom.us/j/123\\@evil.com", "dangerous");
+  });
+
+  it("flags URL with space in host (zoom .us)", () => {
+    expectStatus("https://zoom .us/j/123", "dangerous");
+  });
+
+  it("flags URL with tab in host (zoom.us\\t/j/123)", () => {
+    expectStatus("https://zoom.us\t/j/123", "dangerous");
+  });
+});
+
 // ─── Not a meeting link ─────────────────────────────────────────────────────
 
 describe("not a meeting link", () => {
@@ -573,8 +682,12 @@ describe("edge cases", () => {
     expectStatus("https://ZOOM.US/j/123", "safe");
   });
 
-  it("handles URLs with port numbers", () => {
+  it("handles URLs with default port 443", () => {
     expectStatus("https://zoom.us:443/j/123", "safe");
+  });
+
+  it("flags non-default port (e.g. 8080)", () => {
+    expectStatus("https://zoom.us:8080/j/123", "dangerous");
   });
 
   it("handles URLs with query params", () => {

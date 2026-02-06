@@ -639,7 +639,7 @@ function checkPathAbuse(
         "Path contains '..' (path traversal), which can be used to access unintended resources.",
     };
   }
-  if (pathname.includes("\\")) {
+  if (pathToCheck.includes("\\")) {
     return {
       dangerous: true,
       details:

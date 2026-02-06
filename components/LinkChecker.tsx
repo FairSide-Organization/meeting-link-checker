@@ -29,10 +29,19 @@ export function LinkChecker() {
 
   const handlePaste = useCallback((e: React.ClipboardEvent<HTMLInputElement>) => {
     const pastedText = e.clipboardData.getData("text");
-    // Auto-check on paste if it looks like a URL
-    if (pastedText && (pastedText.includes(".") || pastedText.includes("/"))) {
+    if (!pastedText) return;
+
+    // Compute the final input value after paste (accounting for selection replacement)
+    const input = e.currentTarget;
+    const start = input.selectionStart ?? 0;
+    const end = input.selectionEnd ?? 0;
+    const currentValue = input.value;
+    const composedValue = currentValue.slice(0, start) + pastedText + currentValue.slice(end);
+
+    // Auto-check on paste if the composed value looks like a URL
+    if (composedValue && (composedValue.includes(".") || composedValue.includes("/"))) {
       setTimeout(() => {
-        const validationResult = validateMeetingLink(pastedText);
+        const validationResult = validateMeetingLink(composedValue);
         setResult(validationResult);
       }, 100);
     }
@@ -55,6 +64,7 @@ export function LinkChecker() {
               onKeyDown={handleKeyDown}
               onPaste={handlePaste}
               placeholder="Paste a meeting link to check (e.g., zoom.us/j/123456)"
+              aria-label="Meeting link URL to check"
               className="w-full px-5 py-4 bg-white border border-[#e0d8e8] rounded-2xl text-[#110320] placeholder-[#110320]/40 focus:outline-none focus:border-[#8750FF] focus:ring-4 focus:ring-[#8750FF]/10 transition-all text-base shadow-sm"
               autoComplete="off"
               spellCheck="false"

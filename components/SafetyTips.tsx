@@ -4,19 +4,28 @@ import { useState } from "react";
 import { getSupportedPlatforms } from "@/lib/validators";
 
 export function SafetyTips() {
-  const [scamExpanded, setScamExpanded] = useState(false);
-  const [safetyExpanded, setSafetyExpanded] = useState(false);
-  const [legitWarningExpanded, setLegitWarningExpanded] = useState(false);
-  const [platformsExpanded, setPlatformsExpanded] = useState(false);
-  const [disclaimerExpanded, setDisclaimerExpanded] = useState(false);
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const platforms = getSupportedPlatforms();
+
+  const toggleSection = (section: string) => {
+    setExpandedSections(prev => {
+      const next = new Set(prev);
+      if (next.has(section)) {
+        next.delete(section);
+      } else {
+        next.add(section);
+      }
+      return next;
+    });
+  };
 
   return (
     <div className="w-full max-w-2xl mx-auto mt-12">
       {/* The Scam Explained */}
       <div className="bg-white border border-[#e0d8e8] rounded-2xl p-6 mb-6 shadow-sm">
         <button
-          onClick={() => setScamExpanded(!scamExpanded)}
+          onClick={() => toggleSection("scam")}
+          aria-expanded={expandedSections.has("scam")}
           className="w-full flex items-center justify-between text-left"
         >
           <h2 className="text-lg font-semibold text-[#110320] flex items-center gap-2">
@@ -26,7 +35,7 @@ export function SafetyTips() {
             How the Ongoing Fake Zoom Scam Works
           </h2>
           <svg
-            className={`w-5 h-5 text-[#110320]/40 transition-transform ${scamExpanded ? "rotate-180" : ""}`}
+            className={`w-5 h-5 text-[#110320]/40 transition-transform ${expandedSections.has("scam") ? "rotate-180" : ""}`}
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -34,7 +43,7 @@ export function SafetyTips() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
           </svg>
         </button>
-        {scamExpanded && (
+        {expandedSections.has("scam") && (
           <div className="mt-4 space-y-4 text-[#110320]/70 text-sm leading-relaxed">
             <p>
               <span className="text-[#110320] font-semibold">1. Initial Contact:</span> You receive a meeting link from what appears to be a trusted source. The link looks almost identical to a real Zoom URL.
@@ -60,7 +69,8 @@ export function SafetyTips() {
       {/* Warning: Even Legit Links Can Be Dangerous */}
       <div className="bg-white border border-[#e0d8e8] rounded-2xl p-6 mb-6 shadow-sm">
         <button
-          onClick={() => setLegitWarningExpanded(!legitWarningExpanded)}
+          onClick={() => toggleSection("legitWarning")}
+          aria-expanded={expandedSections.has("legitWarning")}
           className="w-full flex items-center justify-between text-left"
         >
           <h2 className="text-lg font-semibold text-[#110320] flex items-center gap-2">
@@ -70,7 +80,7 @@ export function SafetyTips() {
             Even Legitimate Links Can Be Dangerous
           </h2>
           <svg
-            className={`w-5 h-5 text-[#110320]/40 transition-transform ${legitWarningExpanded ? "rotate-180" : ""}`}
+            className={`w-5 h-5 text-[#110320]/40 transition-transform ${expandedSections.has("legitWarning") ? "rotate-180" : ""}`}
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -78,7 +88,7 @@ export function SafetyTips() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
           </svg>
         </button>
-        {legitWarningExpanded && (
+        {expandedSections.has("legitWarning") && (
           <div className="mt-4 space-y-4 text-[#110320]/70 text-sm leading-relaxed">
             <p className="text-[#110320] font-medium">
               A &quot;Safe&quot; result only means the link goes to a real platform. Sophisticated attackers use legitimate meeting links for social engineering attacks:
@@ -111,7 +121,8 @@ export function SafetyTips() {
       {/* Safety Tips */}
       <div className="bg-white border border-[#e0d8e8] rounded-2xl p-6 mb-6 shadow-sm">
         <button
-          onClick={() => setSafetyExpanded(!safetyExpanded)}
+          onClick={() => toggleSection("safety")}
+          aria-expanded={expandedSections.has("safety")}
           className="w-full flex items-center justify-between text-left"
         >
           <h2 className="text-lg font-semibold text-[#110320] flex items-center gap-2">
@@ -121,7 +132,7 @@ export function SafetyTips() {
             How to Stay Safe
           </h2>
           <svg
-            className={`w-5 h-5 text-[#110320]/40 transition-transform ${safetyExpanded ? "rotate-180" : ""}`}
+            className={`w-5 h-5 text-[#110320]/40 transition-transform ${expandedSections.has("safety") ? "rotate-180" : ""}`}
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -129,7 +140,7 @@ export function SafetyTips() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
           </svg>
         </button>
-        {safetyExpanded && (
+        {expandedSections.has("safety") && (
           <ul className="mt-4 space-y-3">
             {[
               "Verify unexpected meeting requests through a different channel (call, text, DM on another platform)",
@@ -154,7 +165,8 @@ export function SafetyTips() {
       {/* Supported Platforms */}
       <div className="bg-white border border-[#e0d8e8] rounded-2xl p-6 mb-6 shadow-sm">
         <button
-          onClick={() => setPlatformsExpanded(!platformsExpanded)}
+          onClick={() => toggleSection("platforms")}
+          aria-expanded={expandedSections.has("platforms")}
           className="w-full flex items-center justify-between text-left"
         >
           <h2 className="text-lg font-semibold text-[#110320] flex items-center gap-2">
@@ -164,7 +176,7 @@ export function SafetyTips() {
             Supported Platforms ({platforms.length})
           </h2>
           <svg
-            className={`w-5 h-5 text-[#110320]/40 transition-transform ${platformsExpanded ? "rotate-180" : ""}`}
+            className={`w-5 h-5 text-[#110320]/40 transition-transform ${expandedSections.has("platforms") ? "rotate-180" : ""}`}
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -172,7 +184,7 @@ export function SafetyTips() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
           </svg>
         </button>
-        {platformsExpanded && (
+        {expandedSections.has("platforms") && (
           <div className="mt-4 flex flex-wrap gap-2">
             {platforms.map((platform) => (
               <span
@@ -189,7 +201,8 @@ export function SafetyTips() {
       {/* Disclaimer */}
       <div className="bg-white border border-[#e0d8e8] rounded-2xl p-6 shadow-sm">
         <button
-          onClick={() => setDisclaimerExpanded(!disclaimerExpanded)}
+          onClick={() => toggleSection("disclaimer")}
+          aria-expanded={expandedSections.has("disclaimer")}
           className="w-full flex items-center justify-between text-left"
         >
           <h2 className="text-lg font-semibold text-[#110320] flex items-center gap-2">
@@ -199,7 +212,7 @@ export function SafetyTips() {
             Disclaimer
           </h2>
           <svg
-            className={`w-5 h-5 text-[#110320]/40 transition-transform ${disclaimerExpanded ? "rotate-180" : ""}`}
+            className={`w-5 h-5 text-[#110320]/40 transition-transform ${expandedSections.has("disclaimer") ? "rotate-180" : ""}`}
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -207,7 +220,7 @@ export function SafetyTips() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
           </svg>
         </button>
-        {disclaimerExpanded && (
+        {expandedSections.has("disclaimer") && (
           <div className="mt-4 space-y-3 text-[#110320]/60 text-xs leading-relaxed">
             <p>
               <strong className="text-[#110320]/80">No Guarantee of Security:</strong> This tool is provided &quot;as is&quot; for educational and informational purposes only. While we strive to detect known phishing patterns, no automated tool can guarantee 100% protection against all threats. New attack vectors emerge constantly, and sophisticated attackers may use techniques not yet covered by this tool.

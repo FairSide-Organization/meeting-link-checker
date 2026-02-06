@@ -109,20 +109,20 @@ code, pre, kbd, samp {
   font-family: var(--font-mono);
 }
 
-/* Custom scrollbar for dark theme */
+/* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--card);
+  background: #f0ecf5;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--card-border);
+  background: #d0c0e0;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #3d2b5e;
+  background: #b0a0c0;
 }

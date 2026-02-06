@@ -463,6 +463,261 @@ function checkQueryParamTrick(input: string): {
   return { hasTrick: false };
 }
 
+// Redirect-like query param names that can send user to external or dangerous URL
+const REDIRECT_PARAM_NAMES = [
+  "redirect",
+  "url",
+  "next",
+  "continue",
+  "return",
+  "goto",
+  "dest",
+  "destination",
+  "redir",
+  "target",
+  "returnto",
+  "return_to",
+  "redirecturl",
+  "redirect_uri",
+  "redirect_url",
+];
+
+// Dangerous schemes that can appear inside query/fragment values
+const DANGEROUS_VALUE_SCHEMES = ["javascript:", "data:", "vbscript:"];
+
+/**
+ * Check for open redirect / external redirect on legitimate meeting domains.
+ * Example: https://zoom.us?redirect=https://evil.com or ?redirect_uri=https://evil.com
+ */
+function checkDangerousRedirectOnLegitDomain(
+  fullUrl: URL,
+  currentHostname: string,
+): { dangerous: boolean; details?: string } {
+  const legitDomains = Object.keys(LEGITIMATE_PLATFORMS);
+  const isLegitHost = legitDomains.some(
+    (d) => currentHostname === d || currentHostname.endsWith("." + d),
+  );
+  if (!isLegitHost) return { dangerous: false };
+
+  const params = fullUrl.searchParams;
+  for (const [key, value] of params) {
+    const keyNorm = key.toLowerCase().replace(/_/g, "");
+    const isRedirectParam = REDIRECT_PARAM_NAMES.some((p) => {
+      const pNorm = p.toLowerCase().replace(/_/g, "");
+      return keyNorm.includes(pNorm) || pNorm.includes(keyNorm);
+    });
+    if (!isRedirectParam || !value.trim()) continue;
+
+    const valueTrimmed = value.trim();
+    // Dangerous scheme in param value
+    if (
+      DANGEROUS_VALUE_SCHEMES.some((s) =>
+        valueTrimmed.toLowerCase().startsWith(s),
+      )
+    ) {
+      return {
+        dangerous: true,
+        details: `Query parameter "${key}" contains a dangerous value (${valueTrimmed.slice(0, 30)}...). This could execute code in your browser.`,
+      };
+    }
+    // Absolute URL in redirect param — check if it points to another host
+    if (/^https?:\/\//i.test(valueTrimmed)) {
+      try {
+        const target = new URL(valueTrimmed);
+        const targetHost = normalizeTrailingDot(target.hostname.toLowerCase());
+        const sameSite =
+          targetHost === currentHostname ||
+          targetHost.endsWith("." + currentHostname) ||
+          currentHostname.endsWith("." + targetHost);
+        if (!sameSite) {
+          return {
+            dangerous: true,
+            details: `This meeting link includes a redirect parameter ("${key}") that sends you to another site (${targetHost}). This is often used for phishing or token theft.`,
+          };
+        }
+      } catch {
+        return {
+          dangerous: true,
+          details: `Query parameter "${key}" contains an invalid or suspicious redirect URL.`,
+        };
+      }
+    }
+  }
+  return { dangerous: false };
+}
+
+/**
+ * Check for dangerous or misleading fragment (hash).
+ * Example: https://zoom.us#redirect=https://evil.com (fragment can be used for client-side redirects or deception)
+ */
+function checkFragmentRedirect(
+  input: string,
+  fullUrl: URL,
+): {
+  dangerous: boolean;
+  details?: string;
+} {
+  const hash = fullUrl.hash;
+  if (!hash || hash.length <= 1) return { dangerous: false };
+  const fragment = hash.slice(1);
+  // Match redirect=value or ...&redirect=value in fragment
+  for (const p of REDIRECT_PARAM_NAMES) {
+    const pEsc = p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const re = new RegExp(`(?:^|[?&])${pEsc}=([^&\\s]*)`, "i");
+    const m = fragment.match(re);
+    if (m && m[1]) {
+      let v = m[1];
+      try {
+        v = decodeURIComponent(v).trim();
+      } catch {
+        v = v.trim();
+      }
+      if (
+        DANGEROUS_VALUE_SCHEMES.some((s) => v.toLowerCase().startsWith(s)) ||
+        /^https?:\/\//i.test(v)
+      ) {
+        return {
+          dangerous: true,
+          details: `The URL fragment contains a redirect-like value ("${p}=...") that could be used to send you to another site or run code.`,
+        };
+      }
+    }
+  }
+  return { dangerous: false };
+}
+
+/**
+ * Check for download/file params that suggest executable or untrusted file
+ */
+function checkDangerousDownloadParam(fullUrl: URL): {
+  dangerous: boolean;
+  details?: string;
+} {
+  const dangerousExtensions = /\.(exe|bat|cmd|scr|msi|dll|jar|vbs|ps1|sh)$/i;
+  const fileParams = ["download", "file", "attachment", "path"];
+  for (const [key, value] of fullUrl.searchParams) {
+    if (fileParams.some((p) => key.toLowerCase().includes(p))) {
+      if (dangerousExtensions.test(value) || value.includes("..")) {
+        return {
+          dangerous: true,
+          details: `Query parameter "${key}" suggests a file download that could be malicious (e.g. executable).`,
+        };
+      }
+    }
+  }
+  return { dangerous: false };
+}
+
+/**
+ * Extract raw path segment from URL string (before normalization) to detect path traversal
+ */
+function getRawPathFromInput(input: string): string {
+  const withoutProtocol = input.replace(/^https?:\/\//i, "").trim();
+  const pathStart = withoutProtocol.indexOf("/");
+  if (pathStart === -1) return "";
+  const rest = withoutProtocol.slice(pathStart);
+  const queryStart = rest.indexOf("?");
+  const hashStart = rest.indexOf("#");
+  let end = rest.length;
+  if (queryStart !== -1) end = Math.min(end, queryStart);
+  if (hashStart !== -1) end = Math.min(end, hashStart);
+  return rest.slice(0, end);
+}
+
+/**
+ * Check for path traversal, backslash, or @ in path (abuse / confusion)
+ */
+function checkPathAbuse(
+  pathname: string,
+  rawPath?: string,
+): { dangerous: boolean; details?: string } {
+  const pathToCheck = rawPath ?? pathname;
+  if (pathToCheck.includes("..")) {
+    return {
+      dangerous: true,
+      details:
+        "Path contains '..' (path traversal), which can be used to access unintended resources.",
+    };
+  }
+  if (pathname.includes("\\")) {
+    return {
+      dangerous: true,
+      details:
+        "Path contains backslash characters. Legitimate meeting URLs do not use backslashes in the path.",
+    };
+  }
+  if (pathname.includes("@")) {
+    return {
+      dangerous: true,
+      details:
+        "Path contains '@', which can be used to confuse the host part of the URL. Legitimate meeting links do not use this in the path.",
+    };
+  }
+  return { dangerous: false };
+}
+
+/**
+ * Check for non-default port on meeting URL (often used in phishing or non-official copies)
+ */
+function hasNonDefaultPort(fullUrl: URL): boolean {
+  const port = fullUrl.port;
+  if (!port) return false; // default port
+  return port !== "80" && port !== "443";
+}
+
+/**
+ * Check for suspicious path on legitimate meeting domain (e.g. /.evil.com, /phishing.html)
+ */
+function checkSuspiciousPathOnLegit(
+  hostname: string,
+  pathname: string,
+): { dangerous: boolean; details?: string } {
+  const legitDomains = Object.keys(LEGITIMATE_PLATFORMS);
+  const isLegitHost = legitDomains.some(
+    (d) => hostname === d || hostname.endsWith("." + d),
+  );
+  if (!isLegitHost) return { dangerous: false };
+
+  // Path segment starting with dot (e.g. /.evil.com)
+  if (/\/\.[^/]/.test(pathname)) {
+    return {
+      dangerous: true,
+      details:
+        "Path contains a segment starting with '.' (e.g. /.evil.com), which is not a valid meeting path and can be used for phishing.",
+    };
+  }
+  // Path that looks like a static page (common phishing)
+  if (/\.(html?|htm|php|asp|aspx|jsp)$/i.test(pathname)) {
+    return {
+      dangerous: true,
+      details:
+        "This URL points to a static web page on a meeting domain, not a meeting join path. It may be a phishing page.",
+    };
+  }
+  return { dangerous: false };
+}
+
+/**
+ * Check if URL string contains whitespace or control/invisible characters (after trim)
+ */
+function containsWhitespaceOrControlChars(url: string): boolean {
+  // eslint-disable-next-line no-control-regex
+  return /[\s\x00-\x1F\x7F]/.test(url);
+}
+
+/**
+ * Heuristic: input looks like an attempt at a URL (so whitespace in it is suspicious)
+ * Avoids flagging plain prose like "not a url at all!!!!" as dangerous.
+ */
+function looksLikeUrlAttempt(input: string): boolean {
+  if (/https?:\/\//i.test(input)) return true;
+  if (!/\./.test(input)) return false;
+  return (
+    MEETING_KEYWORDS.some((kw) => input.toLowerCase().includes(kw)) ||
+    /\.[a-z]{2,}(\/|$)/i.test(input)
+  );
+}
+
 /**
  * Check if hostname is an IP address (legitimate meetings never use raw IPs)
  */
@@ -710,6 +965,20 @@ export function validateMeetingLink(input: string): ValidationResult {
     };
   }
 
+  // CRITICAL: Reject URLs with whitespace or control/invisible characters (e.g. "zoom .us", "zoom.us\t/j/123")
+  if (
+    containsWhitespaceOrControlChars(trimmedInput) &&
+    looksLikeUrlAttempt(trimmedInput)
+  ) {
+    return {
+      status: "dangerous",
+      message: "Invalid characters in URL",
+      details:
+        "This URL contains spaces, tabs, or other invalid/invisible characters. Legitimate meeting links do not. This may be an attempt to hide the real destination or bypass checks.",
+      originalUrl: input,
+    };
+  }
+
   const parsed = parseUrl(trimmedInput);
 
   if (!parsed) {
@@ -722,6 +991,36 @@ export function validateMeetingLink(input: string): ValidationResult {
   }
 
   const { hostname, pathname } = parsed;
+
+  // Parse full URL for query, port, and fragment checks (parseUrl already succeeded so this should too)
+  let fullUrl: URL;
+  try {
+    fullUrl = new URL(
+      trimmedInput.match(/^https?:\/\//i)
+        ? trimmedInput
+        : "https://" + trimmedInput,
+    );
+  } catch {
+    return {
+      status: "not_meeting_link",
+      message: "Invalid URL format",
+      details: "The text you entered doesn't appear to be a valid URL.",
+      originalUrl: input,
+    };
+  }
+
+  // CRITICAL: Path traversal, backslash, or @ in path (use raw path for .. so we catch before URL normalization)
+  const rawPath = getRawPathFromInput(trimmedInput);
+  const pathAbuse = checkPathAbuse(pathname, rawPath);
+  if (pathAbuse.dangerous) {
+    return {
+      status: "dangerous",
+      message: "Suspicious path in URL",
+      details: pathAbuse.details,
+      originalUrl: input,
+      hostname,
+    };
+  }
 
   // CRITICAL: Check for IP address hosting
   // Legitimate meeting platforms never use raw IP addresses
@@ -792,6 +1091,60 @@ export function validateMeetingLink(input: string): ValidationResult {
   // SECOND: Check if it's a legitimate platform (this takes priority for clean domains)
   const legitCheck = checkLegitimatePlatform(hostname);
   if (legitCheck.isLegit) {
+    // Before returning safe, ensure the URL is not abusing redirect, port, fragment, or path
+    const redirectCheck = checkDangerousRedirectOnLegitDomain(
+      fullUrl,
+      hostname,
+    );
+    if (redirectCheck.dangerous) {
+      return {
+        status: "dangerous",
+        message: "Dangerous redirect on meeting link",
+        details: redirectCheck.details,
+        originalUrl: input,
+        hostname,
+      };
+    }
+    if (hasNonDefaultPort(fullUrl)) {
+      return {
+        status: "dangerous",
+        message: "Non-standard port on meeting URL",
+        details:
+          "This URL uses a non-standard port. Official meeting links use the default port (443 for https). This may be a copycat or phishing site.",
+        originalUrl: input,
+        hostname,
+      };
+    }
+    const fragmentCheck = checkFragmentRedirect(trimmedInput, fullUrl);
+    if (fragmentCheck.dangerous) {
+      return {
+        status: "dangerous",
+        message: "Dangerous fragment in URL",
+        details: fragmentCheck.details,
+        originalUrl: input,
+        hostname,
+      };
+    }
+    const downloadCheck = checkDangerousDownloadParam(fullUrl);
+    if (downloadCheck.dangerous) {
+      return {
+        status: "dangerous",
+        message: "Suspicious download parameter",
+        details: downloadCheck.details,
+        originalUrl: input,
+        hostname,
+      };
+    }
+    const suspiciousPath = checkSuspiciousPathOnLegit(hostname, pathname);
+    if (suspiciousPath.dangerous) {
+      return {
+        status: "dangerous",
+        message: "Suspicious path on meeting domain",
+        details: suspiciousPath.details,
+        originalUrl: input,
+        hostname,
+      };
+    }
     return {
       status: "safe",
       platform: legitCheck.platform,

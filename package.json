@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "build:analyze": "ANALYZE=true next build"
   },
   "keywords": [
     "security",
@@ -30,6 +31,7 @@
     "typescript": "^5.9.3"
   },
   "devDependencies": {
+    "@next/bundle-analyzer": "^15.0.0",
     "@types/node": "^25.2.0",
     "@types/react": "^19.2.10",
     "@types/react-dom": "^19.2.3",

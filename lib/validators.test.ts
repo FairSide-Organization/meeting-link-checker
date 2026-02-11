@@ -56,6 +56,16 @@ describe("legitimate platforms — Google Meet", () => {
     const r = expectStatus("https://meet.google.com/abc-defg-hij", "safe");
     expect(r.platform).toBe("Google Meet");
   });
+
+  it("recognizes google.meet", () => {
+    const r = expectStatus("https://google.meet/", "safe");
+    expect(r.platform).toBe("Google Meet");
+  });
+
+  it("recognizes www.google.com/meet (official Meet entrypoint)", () => {
+    const r = expectStatus("https://www.google.com/meet", "safe");
+    expect(r.platform).toBe("Google Meet");
+  });
 });
 
 describe("legitimate platforms — Microsoft Teams", () => {
@@ -69,6 +79,27 @@ describe("legitimate platforms — Microsoft Teams", () => {
 
   it("recognizes teams.live.com", () => {
     expectStatus("https://teams.live.com/meet/123", "safe");
+  });
+
+  it("recognizes teams.cloud.microsoft", () => {
+    const r = expectStatus("https://teams.cloud.microsoft/", "safe");
+    expect(r.platform).toBe("Microsoft Teams");
+  });
+
+  it("recognizes gcc.teams.microsoft.us (US Government GCC)", () => {
+    const r = expectStatus(
+      "https://gcc.teams.microsoft.us/l/meetup-join/123",
+      "safe",
+    );
+    expect(r.platform).toBe("Microsoft Teams");
+  });
+
+  it("recognizes dod.teams.microsoft.us (US Government DoD)", () => {
+    const r = expectStatus(
+      "https://dod.teams.microsoft.us/l/meetup-join/123",
+      "safe",
+    );
+    expect(r.platform).toBe("Microsoft Teams");
   });
 });
 
@@ -102,6 +133,10 @@ describe("legitimate platforms — Telegram", () => {
 
   it("recognizes telegram.org", () => {
     expectStatus("https://telegram.org/group", "safe");
+  });
+
+  it("recognizes telegram.dog", () => {
+    expectStatus("https://telegram.dog/username", "safe");
   });
 });
 
@@ -154,14 +189,6 @@ describe("legitimate platforms — newly added", () => {
 
   it("recognizes riverside.fm", () => {
     expectStatus("https://riverside.fm/studio/abc", "safe");
-  });
-
-  it("recognizes join.skype.com", () => {
-    expectStatus("https://join.skype.com/abc123", "safe");
-  });
-
-  it("recognizes skype.com", () => {
-    expectStatus("https://skype.com/call/abc", "safe");
   });
 
   it("recognizes signal.group", () => {
@@ -432,10 +459,6 @@ describe("subdomain tricks", () => {
 
   it("flags slack.evil.com (newly added pattern)", () => {
     expectStatus("https://slack.evil.com/huddle/123", "dangerous");
-  });
-
-  it("flags skype.evil.xyz (newly added pattern)", () => {
-    expectStatus("https://skype.evil.xyz/call/123", "dangerous");
   });
 
   it("flags streamyard.evil.com (newly added pattern)", () => {
@@ -739,8 +762,19 @@ describe("getSupportedPlatforms", () => {
     expect(platforms).toContain("Google Meet");
     expect(platforms).toContain("Microsoft Teams");
     expect(platforms).toContain("Slack");
-    expect(platforms).toContain("Skype");
     expect(platforms).toContain("Jitsi Meet");
     expect(platforms).toContain("Signal");
+  });
+});
+
+// ─── Skype should be treated as unverified ────────────────────────────────────
+
+describe("unverified platforms — Skype", () => {
+  it("treats join.skype.com as unverified (suspicious)", () => {
+    expectStatus("https://join.skype.com/abc123", "suspicious");
+  });
+
+  it("treats skype.com as unverified (suspicious)", () => {
+    expectStatus("https://skype.com/call/abc", "suspicious");
   });
 });

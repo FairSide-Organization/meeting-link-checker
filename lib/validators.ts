@@ -66,8 +66,9 @@ const LEGITIMATE_PLATFORMS: Record<
   // Amazon Chime
   "chime.aws": { name: "Amazon Chime" },
 
-  // Loom
-  "loom.com": { name: "Loom", subdomainPattern: /^[a-z0-9-]+$/ },
+  // StreamYard
+  // StreamYard guest/studio links are hosted on streamyard.com (and subdomains like studio.streamyard.com)
+  "streamyard.com": { name: "StreamYard" },
 
   // Riverside
   "riverside.fm": { name: "Riverside" },
@@ -102,8 +103,8 @@ const MEETING_KEYWORDS = [
   "gotomeeting",
   "jitsi",
   "chime",
-  "loom",
   "skype",
+  "streamyard",
 ];
 
 // Cyrillic and other homoglyph characters that look like Latin letters
@@ -302,6 +303,10 @@ const PHISHING_PATTERNS = [
     pattern: /^skype\.[a-z0-9-]+\.[a-z]{2,}$/i,
     description: "Subdomain trick - suspicious 'skype' subdomain",
   },
+  {
+    pattern: /^streamyard\.[a-z0-9-]+\.[a-z]{2,}$/i,
+    description: "Subdomain trick - suspicious 'streamyard' subdomain",
+  },
 
   // Lookalike characters - must contain at least one 0 (zero) instead of o
   {
@@ -340,6 +345,11 @@ const PHISHING_PATTERNS = [
     pattern: /microsoft\.com\.[a-z0-9-]+\.[a-z]+$/i,
     description:
       "Fake domain - 'microsoft.com' is being used as a subdomain of another site",
+  },
+  {
+    pattern: /streamyard\.com\.[a-z0-9-]+\.[a-z]+$/i,
+    description:
+      "Fake domain - 'streamyard.com' is being used as a subdomain of another site",
   },
 
   // Also catch simpler wrong TLD: zoom.us.com, meet.google.org, etc

@@ -143,8 +143,13 @@ describe("legitimate platforms — newly added", () => {
     expectStatus("https://chime.aws/123", "safe");
   });
 
-  it("recognizes loom.com", () => {
-    expectStatus("https://loom.com/share/abc", "safe");
+  it("recognizes streamyard.com", () => {
+    const r = expectStatus("https://streamyard.com/login", "safe");
+    expect(r.platform).toBe("StreamYard");
+  });
+
+  it("recognizes studio.streamyard.com", () => {
+    expectStatus("https://studio.streamyard.com/", "safe");
   });
 
   it("recognizes riverside.fm", () => {
@@ -432,6 +437,10 @@ describe("subdomain tricks", () => {
   it("flags skype.evil.xyz (newly added pattern)", () => {
     expectStatus("https://skype.evil.xyz/call/123", "dangerous");
   });
+
+  it("flags streamyard.evil.com (newly added pattern)", () => {
+    expectStatus("https://streamyard.evil.com/abc", "dangerous");
+  });
 });
 
 // ─── Digit lookalike attacks (0→o, 1→l) ─────────────────────────────────────
@@ -451,10 +460,6 @@ describe("digit lookalike attacks", () => {
     expect(r.message).toMatch(/Digit lookalike/i);
   });
 
-  it("flags l00m.com (0 for o in loom)", () => {
-    expectStatus("https://l00m.com/share/abc", "dangerous");
-  });
-
   it("flags g0t0.com (0 for o in goto)", () => {
     expectStatus("https://g0t0.com/meeting", "dangerous");
   });
@@ -462,6 +467,14 @@ describe("digit lookalike attacks", () => {
   it("does NOT flag legitimate domains with digits", () => {
     // web01.example.com normalizes to webo1.example.com — no meeting keyword
     expectStatus("https://web01.example.com", "not_meeting_link");
+  });
+});
+
+// ─── Loom is not a meeting platform (recording/sharing) ───────────────────────
+
+describe("non-meeting platforms", () => {
+  it("does not treat loom.com share links as meeting links", () => {
+    expectStatus("https://loom.com/share/abc", "not_meeting_link");
   });
 });
 

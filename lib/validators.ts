@@ -26,10 +26,16 @@ const LEGITIMATE_PLATFORMS: Record<
 
   // Google Meet
   "meet.google.com": { name: "Google Meet" },
+  // Google Meet (official marketing/entrypoint domain)
+  "google.meet": { name: "Google Meet" },
 
   // Microsoft Teams
   "teams.microsoft.com": { name: "Microsoft Teams" },
   "teams.live.com": { name: "Microsoft Teams" },
+  // Microsoft Teams (US Government clouds: GCC/DoD commonly use gcc.teams.microsoft.us, dod.teams.microsoft.us)
+  "teams.microsoft.us": { name: "Microsoft Teams" },
+  // Microsoft Teams (new Microsoft-owned TLD)
+  "teams.cloud.microsoft": { name: "Microsoft Teams" },
 
   // Webex
   "webex.com": { name: "Webex", subdomainPattern: /^[a-z0-9-]+$/ },
@@ -48,6 +54,7 @@ const LEGITIMATE_PLATFORMS: Record<
   "t.me": { name: "Telegram" },
   "telegram.me": { name: "Telegram" },
   "telegram.org": { name: "Telegram" },
+  "telegram.dog": { name: "Telegram" },
 
   // Twitter/X
   "twitter.com": { name: "Twitter/X" },
@@ -66,15 +73,12 @@ const LEGITIMATE_PLATFORMS: Record<
   // Amazon Chime
   "chime.aws": { name: "Amazon Chime" },
 
-  // Loom
-  "loom.com": { name: "Loom", subdomainPattern: /^[a-z0-9-]+$/ },
+  // StreamYard
+  // StreamYard guest/studio links are hosted on streamyard.com (and subdomains like studio.streamyard.com)
+  "streamyard.com": { name: "StreamYard" },
 
   // Riverside
   "riverside.fm": { name: "Riverside" },
-
-  // Skype
-  "join.skype.com": { name: "Skype" },
-  "skype.com": { name: "Skype", subdomainPattern: /^[a-z0-9-]+$/ },
 
   // Signal
   "signal.group": { name: "Signal" },
@@ -102,8 +106,8 @@ const MEETING_KEYWORDS = [
   "gotomeeting",
   "jitsi",
   "chime",
-  "loom",
   "skype",
+  "streamyard",
 ];
 
 // Cyrillic and other homoglyph characters that look like Latin letters
@@ -299,8 +303,8 @@ const PHISHING_PATTERNS = [
     description: "Subdomain trick - suspicious 'slack' subdomain",
   },
   {
-    pattern: /^skype\.[a-z0-9-]+\.[a-z]{2,}$/i,
-    description: "Subdomain trick - suspicious 'skype' subdomain",
+    pattern: /^streamyard\.[a-z0-9-]+\.[a-z]{2,}$/i,
+    description: "Subdomain trick - suspicious 'streamyard' subdomain",
   },
 
   // Lookalike characters - must contain at least one 0 (zero) instead of o
@@ -340,6 +344,11 @@ const PHISHING_PATTERNS = [
     pattern: /microsoft\.com\.[a-z0-9-]+\.[a-z]+$/i,
     description:
       "Fake domain - 'microsoft.com' is being used as a subdomain of another site",
+  },
+  {
+    pattern: /streamyard\.com\.[a-z0-9-]+\.[a-z]+$/i,
+    description:
+      "Fake domain - 'streamyard.com' is being used as a subdomain of another site",
   },
 
   // Also catch simpler wrong TLD: zoom.us.com, meet.google.org, etc
@@ -492,12 +501,13 @@ const DANGEROUS_VALUE_SCHEMES = ["javascript:", "data:", "vbscript:"];
 function checkDangerousRedirectOnLegitDomain(
   fullUrl: URL,
   currentHostname: string,
+  forceTreatAsLegitHost = false,
 ): { dangerous: boolean; details?: string } {
   const legitDomains = Object.keys(LEGITIMATE_PLATFORMS);
   const isLegitHost = legitDomains.some(
     (d) => currentHostname === d || currentHostname.endsWith("." + d),
   );
-  if (!isLegitHost) return { dangerous: false };
+  if (!isLegitHost && !forceTreatAsLegitHost) return { dangerous: false };
 
   const params = fullUrl.searchParams;
   for (const [key, value] of params) {
@@ -1089,6 +1099,67 @@ export function validateMeetingLink(input: string): ValidationResult {
   }
 
   // SECOND: Check if it's a legitimate platform (this takes priority for clean domains)
+  // Special-case: Google Meet is also officially hosted on google.com/meet (marketing/entrypoint),
+  // but we do NOT want to broadly allowlist all of google.com.
+  const isGoogleMeetOnGoogleCom =
+    (hostname === "google.com" || hostname === "www.google.com") &&
+    pathname.toLowerCase().startsWith("/meet");
+  if (isGoogleMeetOnGoogleCom) {
+    const redirectCheck = checkDangerousRedirectOnLegitDomain(
+      fullUrl,
+      hostname,
+      true,
+    );
+    if (redirectCheck.dangerous) {
+      return {
+        status: "dangerous",
+        message: "Dangerous redirect on meeting link",
+        details: redirectCheck.details,
+        originalUrl: input,
+        hostname,
+      };
+    }
+    if (hasNonDefaultPort(fullUrl)) {
+      return {
+        status: "dangerous",
+        message: "Non-standard port on meeting URL",
+        details:
+          "This URL uses a non-standard port. Official meeting links use the default port (443 for https). This may be a copycat or phishing site.",
+        originalUrl: input,
+        hostname,
+      };
+    }
+    const fragmentCheck = checkFragmentRedirect(trimmedInput, fullUrl);
+    if (fragmentCheck.dangerous) {
+      return {
+        status: "dangerous",
+        message: "Dangerous fragment in URL",
+        details: fragmentCheck.details,
+        originalUrl: input,
+        hostname,
+      };
+    }
+    const downloadCheck = checkDangerousDownloadParam(fullUrl);
+    if (downloadCheck.dangerous) {
+      return {
+        status: "dangerous",
+        message: "Suspicious download parameter",
+        details: downloadCheck.details,
+        originalUrl: input,
+        hostname,
+      };
+    }
+
+    return {
+      status: "safe",
+      platform: "Google Meet",
+      message: "Verified Google Meet link",
+      details: "This link is from an official Google Meet domain.",
+      originalUrl: input,
+      hostname,
+    };
+  }
+
   const legitCheck = checkLegitimatePlatform(hostname);
   if (legitCheck.isLegit) {
     // Before returning safe, ensure the URL is not abusing redirect, port, fragment, or path

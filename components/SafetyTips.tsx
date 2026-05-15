@@ -198,6 +198,64 @@ export function SafetyTips() {
         )}
       </div>
 
+      {/* Free Extension */}
+      <div className="bg-white border border-[#e0d8e8] rounded-2xl p-6 mb-6 shadow-sm">
+        <button
+          onClick={() => toggleSection("extension")}
+          aria-expanded={expandedSections.has("extension")}
+          className="w-full flex items-center justify-between text-left"
+        >
+          <h2 className="text-lg font-semibold text-[#110320] flex items-center gap-2">
+            <svg className="w-5 h-5 text-[#8750FF]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            </svg>
+            Get the Free Meeting Guard Extension
+          </h2>
+          <svg
+            className={`w-5 h-5 text-[#110320]/40 transition-transform ${expandedSections.has("extension") ? "rotate-180" : ""}`}
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+        {expandedSections.has("extension") && (
+          <div className="mt-4 space-y-4 text-[#110320]/70 text-sm leading-relaxed">
+            <p>
+              <span className="text-[#110320] font-semibold">Meeting Guard</span> is our free Chrome extension that protects you while you browse. It runs locally — no tracking, no analytics, no data leaves your browser. No account, no subscription.
+            </p>
+            <p>
+              <span className="text-[#110320] font-semibold">Camera & mic warnings:</span> If an unknown website requests camera or microphone access, you&apos;ll see a warning. A live allowlist covers 20+ legitimate meeting platforms including Zoom, Google Meet, Microsoft Teams, Webex, Slack, and Discord.
+            </p>
+            <p>
+              <span className="text-[#110320] font-semibold">Suspicious link detection:</span> Flags typosquats, homoglyph domains, and punycode lookalikes in meeting URLs — a useful early signal for fake links.
+            </p>
+            <p>
+              <span className="text-[#110320] font-semibold">Prompt library for live calls:</span> Liveness checks, shared-memory questions, and false-memory traps for use mid-call when something feels off. Not deepfake detection — a tool to help you verify the human on the other end.
+            </p>
+            <p className="bg-[#8750FF]/10 border border-[#8750FF]/20 rounded-lg p-3 text-[#110320] text-xs">
+              <strong>A note on limits:</strong> This is a basic layer of protection, not a guarantee. Sophisticated attackers can still potentially get through, and scammers can also impersonate trusted contacts inside legitimate meeting links. Treat it as one layer of defense, not the only one.
+            </p>
+            <div className="pt-1">
+              <a
+                href="https://chromewebstore.google.com/detail/meeting-guard/okloggikocjdmoimalohkkmjhhamdmlj"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold text-white transition-all hover:brightness-[0.92]"
+                style={{ background: "#8750FF" }}
+              >
+                Get the free extension
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-3.5 h-3.5" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="7" y1="17" x2="17" y2="7" />
+                  <polyline points="7 7 17 7 17 17" />
+                </svg>
+              </a>
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* Disclaimer */}
       <div className="bg-white border border-[#e0d8e8] rounded-2xl p-6 shadow-sm">
         <button

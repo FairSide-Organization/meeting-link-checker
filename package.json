@@ -22,6 +22,7 @@
   "license": "MIT",
   "dependencies": {
     "@tailwindcss/postcss": "^4.1.18",
+    "@vercel/analytics": "^2.0.1",
     "autoprefixer": "^10.4.24",
     "next": "^16.1.6",
     "postcss": "^8.5.6",

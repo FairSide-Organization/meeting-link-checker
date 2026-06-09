@@ -80,6 +80,9 @@ const LEGITIMATE_PLATFORMS: Record<
   "signal.group": { name: "Signal" },
   "signal.me": { name: "Signal" },
 
+  // StreamYard
+  "streamyard.com": { name: "StreamYard" },
+
   // Additional platforms
   "whereby.com": { name: "Whereby" },
 };
@@ -105,6 +108,34 @@ const MEETING_KEYWORDS = [
   "loom",
   "skype",
 ];
+
+// Distinctive platform brand names. These are unique enough that they should
+// only ever appear as part of their OFFICIAL domain (matched first by
+// checkLegitimatePlatform). If one shows up as a *label* of a hostname that
+// isn't in the allowlist — e.g. `streamyard.host01eu.com`, whose registrable
+// domain is host01eu.com, or `zoom.secure-login.io` — the site is fronting as
+// that brand to phish. Generic dictionary words ("meet", "around", "pop",
+// "riverside", …) are deliberately excluded to avoid false positives on
+// legitimate subdomains.
+const BRAND_LABELS = new Set([
+  "streamyard",
+  "zoom",
+  "zoomgov",
+  "webex",
+  "gotomeeting",
+  "bluejeans",
+  "whereby",
+  "jitsi",
+  "calendly",
+  "discord",
+  "skype",
+  "slack",
+  "teams",
+  "hopin",
+  "airmeet",
+  "descript",
+  "mmhmm",
+]);
 
 // Cyrillic and other homoglyph characters that look like Latin letters
 // These are commonly used in phishing attacks
@@ -882,6 +913,26 @@ function checkPhishingPatterns(hostname: string): {
 }
 
 /**
+ * Check for brand impersonation: a distinctive platform brand appears as a
+ * label of a hostname that isn't a legitimate platform. Catches a brand fronted
+ * on a foreign registrable domain at any depth — `streamyard.host01eu.com`,
+ * `zoom.secure-login.io`, `teams.evil.co.uk` — which the leftmost-label-only
+ * subdomain-trick patterns miss. Must run AFTER checkLegitimatePlatform so
+ * official domains (and their valid subdomains) are never flagged.
+ */
+function checkBrandImpersonation(hostname: string): {
+  isImpersonation: boolean;
+  brand?: string;
+} {
+  for (const label of hostname.split(".")) {
+    if (BRAND_LABELS.has(label)) {
+      return { isImpersonation: true, brand: label };
+    }
+  }
+  return { isImpersonation: false };
+}
+
+/**
  * Check if the URL looks like it's trying to be a meeting link
  */
 function looksLikeMeetingLink(hostname: string, pathname: string): boolean {
@@ -1183,6 +1234,22 @@ export function validateMeetingLink(input: string): ValidationResult {
       status: "dangerous",
       message: "Potential phishing link detected!",
       details: phishingCheck.reason,
+      originalUrl: input,
+      hostname,
+    };
+  }
+
+  // FOURTH: Brand impersonation — a real platform name used as a label of a
+  // foreign domain (e.g. streamyard.host01eu.com, teams.evil.co.uk). This is a
+  // catch-all for brand-on-foreign-domain phishing that the specific per-brand
+  // subdomain patterns above miss (other brands, or 4+ label hosts). Runs after
+  // the legitimate-platform check, so official domains stay safe.
+  const brandCheck = checkBrandImpersonation(hostname);
+  if (brandCheck.isImpersonation) {
+    return {
+      status: "dangerous",
+      message: "Brand impersonation detected!",
+      details: `The domain "${hostname}" puts the "${brandCheck.brand}" brand on an unrelated domain — it is NOT the official platform. This is a common phishing tactic. Do NOT enter any credentials or join this meeting.`,
       originalUrl: input,
       hostname,
     };

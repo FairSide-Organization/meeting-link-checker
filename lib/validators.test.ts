@@ -174,6 +174,15 @@ describe("legitimate platforms — newly added", () => {
   it("recognizes cal.com", () => {
     expectStatus("https://cal.com/user/meeting", "safe");
   });
+
+  it("recognizes streamyard.com", () => {
+    const r = expectStatus("https://streamyard.com/abc123", "safe");
+    expect(r.platform).toBe("StreamYard");
+  });
+
+  it("recognizes streamyard.com subdomains", () => {
+    expectStatus("https://www.streamyard.com/abc123", "safe");
+  });
 });
 
 // ─── Dangerous URI schemes ───────────────────────────────────────────────────
@@ -431,6 +440,43 @@ describe("subdomain tricks", () => {
 
   it("flags skype.evil.xyz (newly added pattern)", () => {
     expectStatus("https://skype.evil.xyz/call/123", "dangerous");
+  });
+});
+
+// ─── Brand impersonation on foreign domains ─────────────────────────────────
+
+describe("brand impersonation", () => {
+  it("flags streamyard.host01eu.com (the reported case)", () => {
+    const r = expectStatus("http://streamyard.host01eu.com/", "dangerous");
+    expect(r.message).toMatch(/brand impersonation/i);
+  });
+
+  it("flags streamyard fronted at any depth", () => {
+    expectStatus("https://streamyard.secure-login.io/join", "dangerous");
+  });
+
+  it("flags zoom.secure-login.io", () => {
+    expectStatus("https://zoom.secure-login.io/j/123", "dangerous");
+  });
+
+  it("flags teams.evil.co.uk (3+ labels, missed by leftmost-only checks)", () => {
+    expectStatus("https://teams.evil.co.uk/meet", "dangerous");
+  });
+
+  it("flags a brand as a deep subdomain label", () => {
+    expectStatus("https://login.webex.attacker.com/start", "dangerous");
+  });
+
+  it("does NOT flag the official streamyard.com", () => {
+    expectStatus("https://streamyard.com/abc123", "safe");
+  });
+
+  it("does NOT flag legitimate brand subdomains", () => {
+    expectStatus("https://us05web.zoom.us/j/123", "safe");
+  });
+
+  it("does NOT flag unrelated domains without a brand label", () => {
+    expectStatus("https://example.com/", "not_meeting_link");
   });
 });
 

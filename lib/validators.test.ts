@@ -480,6 +480,60 @@ describe("brand impersonation", () => {
   });
 });
 
+// ─── Blacklisted domains & region-code impersonation (us07 family) ──────────
+
+describe("blacklisted domains", () => {
+  it("flags meet.google.us07.com (the reported case)", () => {
+    const r = expectStatus("https://meet.google.us07.com/rua-awlz-pqr", "dangerous");
+    expect(r.message).toMatch(/known phishing/i);
+  });
+
+  it("flags meet.us07google.com (the reported case)", () => {
+    expectStatus("https://meet.us07google.com/etf-efdg-wxy", "dangerous");
+  });
+
+  it("flags google.us07meet.com (the reported case)", () => {
+    expectStatus("https://google.us07meet.com/rua-awlz-pqr", "dangerous");
+  });
+
+  it("flags the bare blacklisted domain and any subdomain", () => {
+    expectStatus("https://us07.com/join", "dangerous");
+    expectStatus("https://login.us07.com/join", "dangerous");
+  });
+});
+
+describe("region-code impersonation", () => {
+  it("flags a legit meeting host recomposed on a foreign domain (no digits)", () => {
+    const r = expectStatus("https://meet.google.uswest.com/abc-defg-hij", "dangerous");
+    expect(r.message).toMatch(/fake regional/i);
+  });
+
+  it("flags teams.microsoft recomposed on a foreign domain", () => {
+    expectStatus("https://teams.microsoft.eu02.net/meet", "dangerous");
+  });
+
+  it("flags brand tokens fused with region-code affixes", () => {
+    expectStatus("https://googleus02.com/meet", "dangerous");
+    expectStatus("https://zoomus02web.com/j/123", "dangerous");
+    expectStatus("https://us09meet.io/abc", "dangerous");
+  });
+
+  it("flags region-code labels co-occurring with brand labels", () => {
+    expectStatus("https://google.us08.net/abc-defg-hij", "dangerous");
+    expectStatus("https://meet.eu2.org/room", "dangerous");
+  });
+
+  it("does NOT flag real Zoom region hosts", () => {
+    expectStatus("https://us02web.zoom.us/j/123", "safe");
+    expectStatus("https://us07web.zoom.us/j/123", "safe");
+  });
+
+  it("does NOT flag legitimate brand compounds without digits", () => {
+    expectStatus("https://www.googleusercontent.com/img.png", "not_meeting_link");
+    expectStatus("https://zoominfo.com/company", "suspicious");
+  });
+});
+
 // ─── Digit lookalike attacks (0→o, 1→l) ─────────────────────────────────────
 
 describe("digit lookalike attacks", () => {

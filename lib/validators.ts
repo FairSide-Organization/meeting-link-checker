@@ -137,6 +137,139 @@ const BRAND_LABELS = new Set([
   "mmhmm",
 ]);
 
+// Explicitly blacklisted domains observed in real phishing campaigns. The
+// `us07` family impersonates Google Meet by borrowing Zoom's regional
+// datacenter naming (us02web.zoom.us). Matched exactly and as parent of any
+// subdomain, before every other check — including the allowlist.
+const BLACKLISTED_DOMAINS = [
+  "us07.com", // meet.google.us07.com
+  "us07google.com", // meet.us07google.com
+  "us07meet.com", // google.us07meet.com
+];
+
+// Multi-label legitimate domains minus their TLD. If one appears as a
+// subdomain chain of a hostname that is NOT a legitimate platform, the site
+// is recomposing a real meeting host on a foreign registrable domain —
+// `meet.google.us07.com` really resolves to us07.com. The per-brand
+// subdomain-trick patterns miss these because the attacker drops the `.com`.
+const COMPOSED_BRAND_SUBDOMAINS = [
+  "meet.google.",
+  "hangouts.google.",
+  "teams.microsoft.",
+  "teams.live.",
+  "app.slack.",
+  "join.skype.",
+  "meet.jit.",
+];
+
+// Brand tokens that phishers fuse with Zoom-style region codes inside a
+// single label (`us07google.com`, `us07meet.com`, `googleus02.net`).
+const AFFIX_BRAND_TOKENS = [
+  "google",
+  "zoom",
+  "meet",
+  "teams",
+  "webex",
+  "skype",
+  "slack",
+  "discord",
+  "microsoft",
+  "hangouts",
+];
+
+// Zoom-style region/datacenter label: us07, eu2, web03, us02web…
+const REGION_CODE_LABEL = /^(?:us|eu|ap|apac|asia|web)-?\d{1,3}(?:[a-z]{1,4})?$/;
+
+// Brand/keyword labels that make a co-occurring region-code label suspicious
+// (`meet.us07.com`, `google.us07.net`). These brands' bare labels are
+// otherwise legitimate so they can't live in BRAND_LABELS.
+const REGION_COMBO_LABELS = new Set([
+  "zoom",
+  "meet",
+  "teams",
+  "webex",
+  "skype",
+  "discord",
+  "whereby",
+  "jitsi",
+  "gotomeeting",
+  "bluejeans",
+  "google",
+  "microsoft",
+  "hangouts",
+]);
+
+/**
+ * Check against the explicit blacklist (exact or subdomain match)
+ */
+function isDomainBlacklisted(hostname: string): boolean {
+  return BLACKLISTED_DOMAINS.some(
+    (domain) => hostname === domain || hostname.endsWith("." + domain),
+  );
+}
+
+/**
+ * A label that fuses a brand token with a short digit-bearing affix is a
+ * region-code impersonation (`us07google`, `us07meet`, `googleus02`,
+ * `zoomus02web`). Requiring a digit keeps legitimate compounds like
+ * `googleusercontent`, `zoominfo` or `meetup` safe.
+ */
+function isRegionAffixLabel(label: string): boolean {
+  for (const token of AFFIX_BRAND_TOKENS) {
+    if (label === token || !label.includes(token)) continue;
+    const affix = label.split(token).join("");
+    if (/\d/.test(affix) && /^[a-z0-9-]{1,8}$/.test(affix)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Check for region-code impersonation: a legit meeting host minus its TLD
+ * recomposed on a foreign domain (`meet.google.us07.com`), a brand token
+ * fused with a region-code affix (`us07google.com`, `us07meet.com`), or a
+ * region-code label co-occurring with a meeting brand label
+ * (`meet.us07.com`). Must run AFTER checkLegitimatePlatform so official
+ * domains — including real Zoom region hosts like us02web.zoom.us — are
+ * never flagged.
+ */
+function checkRegionCodeImpersonation(hostname: string): {
+  isImpersonation: boolean;
+  reason?: string;
+} {
+  for (const composed of COMPOSED_BRAND_SUBDOMAINS) {
+    if (hostname.includes(composed)) {
+      return {
+        isImpersonation: true,
+        reason: `The domain recomposes a real meeting host ("${composed.slice(0, -1)}") as subdomains of an unrelated domain. The real destination is NOT the official platform.`,
+      };
+    }
+  }
+
+  const labels = hostname.split(".");
+  for (const label of labels) {
+    if (isRegionAffixLabel(label)) {
+      return {
+        isImpersonation: true,
+        reason: `The domain fuses a meeting-platform brand with a Zoom-style region code ("${label}") to look like an official regional server. Real platforms never do this.`,
+      };
+    }
+  }
+
+  if (
+    labels.some((l) => REGION_CODE_LABEL.test(l)) &&
+    labels.some((l) => REGION_COMBO_LABELS.has(l))
+  ) {
+    return {
+      isImpersonation: true,
+      reason: `The domain combines a meeting-platform name with a Zoom-style region code (like "us07") on an unrelated domain. Real regional servers only exist under official platform domains.`,
+    };
+  }
+
+  return { isImpersonation: false };
+}
+
 // Cyrillic and other homoglyph characters that look like Latin letters
 // These are commonly used in phishing attacks
 const HOMOGLYPH_MAP: Record<string, string> = {
@@ -1043,6 +1176,18 @@ export function validateMeetingLink(input: string): ValidationResult {
 
   const { hostname, pathname } = parsed;
 
+  // CRITICAL: Explicit blacklist of known phishing domains — checked before
+  // everything else, including the legitimate-platform allowlist.
+  if (isDomainBlacklisted(hostname)) {
+    return {
+      status: "dangerous",
+      message: "Known phishing domain!",
+      details: `The domain "${hostname}" is on our blacklist of known phishing sites impersonating meeting platforms. Do NOT open this link or enter any credentials.`,
+      originalUrl: input,
+      hostname,
+    };
+  }
+
   // Parse full URL for query, port, and fragment checks (parseUrl already succeeded so this should too)
   let fullUrl: URL;
   try {
@@ -1250,6 +1395,20 @@ export function validateMeetingLink(input: string): ValidationResult {
       status: "dangerous",
       message: "Brand impersonation detected!",
       details: `The domain "${hostname}" puts the "${brandCheck.brand}" brand on an unrelated domain — it is NOT the official platform. This is a common phishing tactic. Do NOT enter any credentials or join this meeting.`,
+      originalUrl: input,
+      hostname,
+    };
+  }
+
+  // FOURTH: Region-code impersonation — Zoom-style region codes used to make
+  // a fake Google Meet / Teams / Zoom domain look like an official regional
+  // server (meet.google.us07.com, us07google.com, google.us07meet.com).
+  const regionCheck = checkRegionCodeImpersonation(hostname);
+  if (regionCheck.isImpersonation) {
+    return {
+      status: "dangerous",
+      message: "Fake regional meeting domain detected!",
+      details: `${regionCheck.reason} Do NOT enter any credentials or join this meeting.`,
       originalUrl: input,
       hostname,
     };

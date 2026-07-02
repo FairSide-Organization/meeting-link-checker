@@ -1,6 +1,6 @@
 {
   "name": "meeting-link-checker",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Verify meeting links to protect against phishing scams",
   "scripts": {
     "dev": "next dev",

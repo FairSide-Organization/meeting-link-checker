@@ -29,6 +29,7 @@ const LEGITIMATE_PLATFORMS: Record<
 
   // Microsoft Teams
   "teams.microsoft.com": { name: "Microsoft Teams" },
+  "teams.cloud.microsoft": { name: "Microsoft Teams" },
   "teams.live.com": { name: "Microsoft Teams" },
 
   // Webex
@@ -156,6 +157,7 @@ const COMPOSED_BRAND_SUBDOMAINS = [
   "meet.google.",
   "hangouts.google.",
   "teams.microsoft.",
+  "teams.cloud.",
   "teams.live.",
   "app.slack.",
   "join.skype.",

@@ -70,6 +70,14 @@ describe("legitimate platforms — Microsoft Teams", () => {
   it("recognizes teams.live.com", () => {
     expectStatus("https://teams.live.com/meet/123", "safe");
   });
+
+  it("recognizes teams.cloud.microsoft", () => {
+    const r = expectStatus(
+      "https://teams.cloud.microsoft/l/meetup-join/123",
+      "safe",
+    );
+    expect(r.platform).toBe("Microsoft Teams");
+  });
 });
 
 describe("legitimate platforms — Webex", () => {
@@ -510,6 +518,10 @@ describe("region-code impersonation", () => {
 
   it("flags teams.microsoft recomposed on a foreign domain", () => {
     expectStatus("https://teams.microsoft.eu02.net/meet", "dangerous");
+  });
+
+  it("flags teams.cloud recomposed on a foreign domain", () => {
+    expectStatus("https://teams.cloud.evil.com/meet", "dangerous");
   });
 
   it("flags brand tokens fused with region-code affixes", () => {
